@@ -87,6 +87,43 @@
       "docs": [
         "docs/ALBUM.md"
       ]
+    },
+    {
+      "id": "music-player",
+      "title": "音乐播放器（曲目 · 歌词 · 播放参数）",
+      "dir": "src/features/music-player",
+      "entry": "src/features/music-player/index.ts",
+      "publicApi": [
+        "createMusicPlayerFeature",
+        "MUSIC_ENTRY_SELECTOR"
+      ],
+      "hostPort": "MusicPlayerHost",
+      "facade": "MusicPlayerFeature",
+      "eager": false,
+      "reason": "播放器浮层、歌词解析与样式表按需加载：曲目是少数派入口，三维入口首屏不为它付费。",
+      "styles": [
+        "player.css"
+      ],
+      "styleEntry": "src/features/music-player/styles.ts",
+      "checks": [],
+      "reviewContract": [
+        "active",
+        "track",
+        "index",
+        "playing",
+        "moduleLoaded"
+      ],
+      "runtimeMarkers": [
+        "music-player"
+      ],
+      "serverSide": [],
+      "ops": [],
+      "scripts": [],
+      "shared": [],
+      "surfaces": [],
+      "docs": [
+        "docs/MUSIC.md"
+      ]
     }
   ]
 }

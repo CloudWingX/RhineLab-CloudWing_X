@@ -2,8 +2,10 @@ import {
   albumCategories as validatedAlbumCategories,
   albums as validatedAlbums,
   labContent,
+  musicTracks as validatedMusicTracks,
   type LabAlbumSlot,
   type LabSlot,
+  type MusicTrack,
 } from "./blog-adapter.ts";
 
 export type ArchiveRecord = LabSlot;
@@ -15,6 +17,8 @@ export const records: ArchiveRecord[] = labContent.records;
 export const albums: ArchiveAlbum[] = validatedAlbums;
 /** 影像档案的两个大类（游戏影像 / 影像图集），顺序同数据源。 */
 export const albumCategories: string[] = validatedAlbumCategories;
+/** 曲目表（content/music.json → lab-content.json 的 music.tracks）。 */
+export const musicTracks: MusicTrack[] = validatedMusicTracks;
 // 列 = 5 个文章主题 + 影像大类（都由 lab-content.json 的 columns 决定，代码不写死列数）。
 export const categories = ["全部档案", ...labContent.categories];
 export const archiveColumns = labContent.columns;

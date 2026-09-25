@@ -202,6 +202,41 @@ if (gallery) {
   }
 }
 
+// ── 音乐（曲目表）────────────────────────────────────────────────────────
+// content/music.json 与 gallery.json 同级，都是"内容侧唯一数据源"。这里只做两件事：
+// 接进 .generated/lab-content.json（lab 应用只读这一个文件），并校验每条曲目的音频与封面
+// 在 public/music 里真实存在 —— 缺素材就中断构建，而不是发出一个"点了没声音"的播放器。
+// ★路径保持站内相对形态（/music/…）★：lab 应用用 assetUrl() 解析（自动带上 /lab/ 前缀），
+// 所以这里不写死 base。
+const musicFile = resolve(root, "content/music.json");
+const musicPublicDir = resolve(root, "public");
+
+let music = { tracks: [] };
+try {
+  const parsed = JSON.parse(await readFile(musicFile, "utf8"));
+  const tracks = Array.isArray(parsed.tracks) ? parsed.tracks : [];
+  for (const track of tracks) {
+    if (!track || !track.id || !track.title) {
+      errors.push("content/music.json：曲目缺少 id 或 title");
+      continue;
+    }
+    for (const [key, value] of [
+      ["src", track.src],
+      ["cover", track.cover],
+    ]) {
+      const local = resolve(musicPublicDir, String(value ?? "").replace(/^\//, ""));
+      try {
+        await stat(local);
+      } catch {
+        errors.push(`content/music.json：曲目「${track.id}」的 ${key} 不存在：${value}`);
+      }
+    }
+  }
+  music = { tracks };
+} catch (error) {
+  errors.push(`content/music.json：${error.message}`);
+}
+
 if (errors.length) {
   console.error(`生成三维内容失败：\n- ${errors.join("\n- ")}`);
   process.exit(1);
@@ -221,6 +256,7 @@ await writeFile(
       columns,
       categories: columns,
       records,
+      music,
     },
     null,
     2,
@@ -233,5 +269,6 @@ const albumRecords = records.filter((r) => r.kind === "album");
 console.log(
   `三维内容生成：${columns.length} 列（${collections.themes.length} 文章主题 + ${albumCategories.length} 影像大类）；` +
     `档案 ${records.length} 条 —— 文章 ${postRecords.length} 条（引用 ${new Set(postRecords.map((r) => r.postId)).size} 篇公开文章）、` +
-    `影像 ${albumRecords.length} 个图集（${albumImageTotal} 张）。`,
+    `影像 ${albumRecords.length} 个图集（${albumImageTotal} 张）` +
+    `${music.tracks.length ? `；音乐 ${music.tracks.length} 首` : ""}。`,
 );

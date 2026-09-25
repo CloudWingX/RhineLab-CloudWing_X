@@ -21,6 +21,18 @@ async function fontFiles(relativeDir) {
   return found.sort();
 }
 
+/** 音乐目录：音频、封面、歌词整棵树都收（播放器按 content/music.json 里的 id 取用）。 */
+async function musicFiles(relativeDir) {
+  const dir = resolve(source, relativeDir);
+  const found = [];
+  for (const entry of await readdir(dir, { withFileTypes: true, recursive: true })) {
+    if (!entry.isFile()) continue;
+    const nested = entry.parentPath ? entry.parentPath.replace(dir, "").replace(/^[\\/]/, "") : "";
+    found.push(`${relativeDir}/${nested ? nested + "/" : ""}${entry.name}`.replace(/\/+/g, "/"));
+  }
+  return found.sort();
+}
+
 const WHITELIST = [
   "favicon.svg",
   // Text/UI font: MiSans, self-hosted woff2 sharded by unicode-range.
@@ -40,6 +52,10 @@ const WHITELIST = [
   "audio/atmosphere.ogg",
   "audio/motif.ogg",
   "audio/pulse.ogg",
+  // 音乐播放器（src/features/music-player/）的曲目素材：音频、封面、歌词。
+  // 曲目数据在 content/music.json；这里只管文件。整棵树都要登记 —— lab 的 publicDir
+  // 是 .generated/lab-public，只收白名单里的文件，漏登记就是"播放器没声音"。
+  ...(await musicFiles("music")),
   "licenses/rolling-number.txt",
 ];
 

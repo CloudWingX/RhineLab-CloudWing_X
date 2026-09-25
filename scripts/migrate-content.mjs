@@ -260,6 +260,82 @@ const gallery = {
   items: galleryItems,
 };
 
+// 5) 音乐：曲目数据 + 音频素材
+//    旧站的曲目数据在 src/site.ts 的 MUSIC 数组里（唯一事实来源），音频/封面/歌词在 public/music/。
+//    这里转成 content/music.json —— 与 lab-collections.json / gallery.json 同级，仍是
+//    "内容侧唯一数据源"，/lab/ 的音乐播放器只读它。
+//    ★歌词不进 JSON★：约定是 public/music/lyrics/<id>.lrc 存在即自动同步；少一个文件就自然
+//    退化成"纯音乐"，不需要在数据里重复维护（也避免数据与文件两处打架）。
+function parseMusic(source) {
+  const at = source.indexOf('export const MUSIC');
+  if (at < 0) return [];
+  const open = source.indexOf('[', at);
+  const close = source.indexOf('\n];', open);
+  if (open < 0 || close < 0) return [];
+  const body = source.slice(open + 1, close);
+  const str = (chunk, key) => {
+    const m =
+      chunk.match(new RegExp(`${key}:\\s*'([^']*)'`)) ||
+      chunk.match(new RegExp(`${key}:\\s*"([^"]*)"`));
+    return m ? m[1] : '';
+  };
+  const num = (chunk, key) => {
+    const m = chunk.match(new RegExp(`${key}:\\s*([\\d.]+)`));
+    return m ? Number(m[1]) : undefined;
+  };
+  return body
+    .split('{')
+    .slice(1)
+    .filter((chunk) => /id:\s*['"]/.test(chunk))
+    .map((chunk) => ({
+      id: str(chunk, 'id'),
+      title: str(chunk, 'title'),
+      artist: str(chunk, 'artist'),
+      album: str(chunk, 'album'),
+      src: str(chunk, 'src'),
+      cover: str(chunk, 'cover'),
+      instrumental: /instrumental:\s*true/.test(chunk),
+      duration: num(chunk, 'duration'),
+      sizeMB: num(chunk, 'sizeMB'),
+      bitrate: num(chunk, 'bitrate'),
+      origin: str(chunk, 'origin'),
+    }));
+}
+
+const musicTracks = parseMusic(readFileSync(join(FROM, 'src/site.ts'), 'utf8'));
+const oldMusicPublic = join(FROM, 'public/music');
+const newMusicPublic = join(TO, 'public/music');
+
+const music = {
+  note: '曲目数据源：由 scripts/migrate-content.mjs 从旧站 src/site.ts 的 MUSIC 数组生成；音频、封面与歌词在 public/music/（歌词约定 lyrics/<id>.lrc 存在即自动同步）。',
+  tracks: musicTracks,
+};
+
+// 双向校验：每条曲目的 src / cover 必须在旧站真实存在；纯音乐若带 lrc 就是数据自相矛盾。
+if (musicTracks.length) {
+  if (!existsSync(oldMusicPublic)) {
+    console.error(`✗ 找不到 ${oldMusicPublic}`);
+    process.exit(1);
+  }
+  for (const track of musicTracks) {
+    for (const [key, value] of [['src', track.src], ['cover', track.cover]]) {
+      const local = join(oldMusicPublic, String(value).replace(/^\/music\//, ''));
+      if (!value || !existsSync(local)) {
+        console.error(`✗ 曲目「${track.id}」的 ${key} 在旧站 public/music 里不存在：${value}`);
+        process.exit(1);
+      }
+    }
+    const lrc = join(oldMusicPublic, 'lyrics', `${track.id}.lrc`);
+    if (track.instrumental && existsSync(lrc)) {
+      console.error(`✗ 曲目「${track.id}」被标为纯音乐，却存在歌词 ${lrc} —— 两者矛盾`);
+      process.exit(1);
+    }
+    if (!track.instrumental && !existsSync(lrc)) {
+      console.warn(`  ⚠ 曲目「${track.id}」没有歌词文件（${lrc}），播放时歌词区会为空`);
+    }
+  }
+}
+
 // ── 序列化 ──────────────────────────────────────────────────────────────
 const yamlArr = (arr) => `[${arr.map((s) => JSON.stringify(s)).join(', ')}]`;
 function toMd(e) {
@@ -355,5 +431,16 @@ if (galleryItems.length && existsSync(oldShotsPublic)) {
   for (const category of gallery.categories) {
     const count = galleryItems.filter((i) => category.albums.includes(i.game)).length;
     console.log(`    [${category.name}] ${category.albums.join('、')} —— ${count} 张`);
+  }
+}
+
+// 音乐：搬素材 + 写数据
+if (musicTracks.length) {
+  cpSync(oldMusicPublic, newMusicPublic, { recursive: true });
+  writeFileSync(join(TO, 'content/music.json'), JSON.stringify(music, null, 2) + '\n', 'utf8');
+  const withLyrics = musicTracks.filter((t) => !t.instrumental).length;
+  console.log(`✓ 已搬曲目 ${musicTracks.length} 首（${withLyrics} 首有歌词 / ${musicTracks.length - withLyrics} 首纯音乐）（音频 → public/music/）`);
+  for (const t of musicTracks) {
+    console.log(`    ${t.id.padEnd(16)} ${String(t.duration ?? '?').padStart(7)}s  ${t.artist}`);
   }
 }

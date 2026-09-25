@@ -1,0 +1,57 @@
+{
+  "note": "曲目数据源：由 scripts/migrate-content.mjs 从旧站 src/site.ts 的 MUSIC 数组生成；音频、封面与歌词在 public/music/（歌词约定 lyrics/<id>.lrc 存在即自动同步）。",
+  "tracks": [
+    {
+      "id": "evolution-era",
+      "title": "Evolution Era",
+      "artist": "V.K克",
+      "album": "『Deemo』Song Collection",
+      "src": "/music/evolution-era.mp3",
+      "cover": "/music/covers/evolution-era.jpg",
+      "instrumental": true,
+      "duration": 292.11,
+      "sizeMB": 11.15,
+      "bitrate": 320,
+      "origin": "FLAC 24bit/192kHz → MP3 320kbps"
+    },
+    {
+      "id": "into-the-sky",
+      "title": "Into the Sky <MODv>",
+      "artist": "SawanoHiroyuki[nZk]",
+      "album": "Avid / Hands Up to the Sky",
+      "src": "/music/into-the-sky.mp3",
+      "cover": "/music/covers/into-the-sky.jpg",
+      "instrumental": false,
+      "duration": 229.8,
+      "sizeMB": 8.77,
+      "bitrate": 320,
+      "origin": "FLAC 24bit/192kHz → MP3 320kbps"
+    },
+    {
+      "id": "wings-of-piano",
+      "title": "Wings of Piano",
+      "artist": "V.K克",
+      "album": "『Deemo』Song Collection",
+      "src": "/music/wings-of-piano.mp3",
+      "cover": "/music/covers/wings-of-piano.jpg",
+      "instrumental": true,
+      "duration": 340.31,
+      "sizeMB": 12.98,
+      "bitrate": 320,
+      "origin": "FLAC 24bit/192kHz → MP3 320kbps"
+    },
+    {
+      "id": "starry-night",
+      "title": "星が瞬くこんな夜に",
+      "artist": "supercell",
+      "album": "魔法使いの夜 オリジナルサウンドトラック",
+      "src": "/music/starry-night.mp3",
+      "cover": "/music/covers/starry-night.jpg",
+      "instrumental": false,
+      "duration": 230.5,
+      "sizeMB": 8.8,
+      "bitrate": 320,
+      "origin": "FLAC 24bit/192kHz → MP3 320kbps"
+    }
+  ]
+}

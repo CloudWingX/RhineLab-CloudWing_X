@@ -59,12 +59,30 @@ export interface LabAlbumSlot extends SlotBase {
 
 export type LabSlot = LabPostSlot | LabAlbumSlot;
 
+/** 一首曲目（content/music.json → lab-content.json 的 `music.tracks`）。 */
+export interface MusicTrack {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  /** 站内路径（/music/<id>.mp3）；lab 应用用 assetUrl() 解析成 /lab/music/… */
+  src: string;
+  cover: string;
+  /** 纯音乐：没有歌词，歌词区显示占位语。 */
+  instrumental: boolean;
+  duration: number;
+  sizeMB: number;
+  bitrate: number;
+  origin: string;
+}
+
 export interface LabContent {
   generatedAt: string;
   site: string;
   columns: string[];
   categories: string[];
   records: LabSlot[];
+  music: { tracks: MusicTrack[] };
 }
 
 const lab = content as LabContent;
@@ -135,6 +153,29 @@ for (const record of lab.records) {
   hrefByPostId.set(record.postId, record.href);
 }
 
+// 音乐：这里只校验"能不能播"——id 唯一、src/cover 是站内绝对路径。
+// 素材是否真实存在由生成期（build-lab-content.mjs）负责，那里才拿得到文件系统。
+const trackList = lab.music?.tracks;
+if (!Array.isArray(trackList)) {
+  problems.push("music.tracks 必须是数组");
+} else {
+  const seenTrackIds = new Set<string>();
+  for (const track of trackList) {
+    if (!track.id || seenTrackIds.has(track.id)) {
+      problems.push(`曲目 id 缺失或重复：${track.id}`);
+    }
+    seenTrackIds.add(track.id);
+    for (const [key, value] of [
+      ["src", track.src],
+      ["cover", track.cover],
+    ] as const) {
+      if (!value || !value.startsWith("/")) {
+        problems.push(`曲目 ${track.id} 的 ${key} 必须是站内绝对路径：${value}`);
+      }
+    }
+  }
+}
+
 if (problems.length) {
   throw new Error(`lab 内容校验失败：\n- ${problems.join("\n- ")}`);
 }
@@ -146,6 +187,8 @@ export const albums = lab.records.filter(
 );
 /** 影像大类，按 records 里首次出现的顺序（即 gallery.json 的声明顺序）。 */
 export const albumCategories = [...new Set(albums.map((album) => album.category))];
+/** 曲目表（音乐播放器用）；素材是否到位由生成期校验，这里只管数据形态。 */
+export const musicTracks: MusicTrack[] = lab.music?.tracks ?? [];
 export function hrefForPost(postId: string): string | null {
   return hrefByPostId.get(postId) ?? null;
 }

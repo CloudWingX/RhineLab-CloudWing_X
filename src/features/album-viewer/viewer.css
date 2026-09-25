@@ -41,6 +41,14 @@ dialog.album-viewer[open] {
   flex-direction: column;
 }
 
+/* 舞台缩放：**不能写在 .album-modal 上** —— SurfaceTransition 会对 .terminal-modal
+   （= .album-modal）跑 element.animate() 改 transform，而 Web Animations 的效果优先级
+   高于普通 CSS 声明，写在它上面会被动画覆盖掉。所以放在不参与动画的包裹层上。 */
+.album-scale {
+  transform: scale(var(--album-stage-scale, 1));
+  transform-origin: center;
+}
+
 .album-stage {
   flex: 1;
   min-height: 0;

@@ -1,0 +1,440 @@
+/**
+ * 音乐播放器的表面样式。
+ *
+ * 只在 `dialog.music-player` 子树内生效：不写 `:root` / `body` / 全局元素选择器。
+ * 遮罩、窗口盒与进出动效复用共享的 `.modal-backdrop` / `.terminal-modal` / `SurfaceTransition`。
+ * 颜色一律走 `--theme-*`（由 paintTheme 在 :root 上按明暗插值），因此浅色 / 深色自动成立。
+ */
+dialog.music-player {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+dialog.music-player:not([open]) {
+  display: none;
+}
+
+dialog.music-player[open] {
+  display: block;
+}
+
+.music-modal {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 两栏：左侧黑胶 + 歌词，右侧曲目信息 / 控制 / 参数 / 曲目表。
+   右栏允许纵向滚动，因此内容再多也不会把窗口盒撑破。 */
+.music-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 30px;
+}
+
+.music-left {
+  flex: 0 0 296px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.music-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-right: 6px;
+}
+
+/* ── 黑胶唱片 ───────────────────────────────────────────────────────── */
+
+.music-disc {
+  position: relative;
+  width: 268px;
+  height: 268px;
+  margin: 4px auto 0;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.045) 0 2px,
+      rgba(0, 0, 0, 0.22) 2px 4px
+    ),
+    radial-gradient(circle at 50% 50%, #23211d 0 38%, #131211 38% 100%);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
+}
+
+.music-disc.is-spinning {
+  animation: music-spin 14s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .music-disc.is-spinning {
+    animation: none;
+  }
+}
+
+@keyframes music-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.music-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46%;
+  height: 46%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background-color: var(--theme-field);
+  background-size: cover;
+  background-position: center;
+}
+
+.music-hole {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--theme-panel);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+/* ── 歌词 ───────────────────────────────────────────────────────────── */
+
+.music-lyrics {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--theme-line);
+  padding-top: 10px;
+}
+
+.music-lyrics-title,
+.music-params h4,
+.music-listwrap h4 {
+  margin: 0 0 6px;
+  font-size: 10px;
+  letter-spacing: 1.6px;
+  color: var(--theme-muted);
+}
+
+.music-lyrics-inner {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+}
+
+.music-lyric {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--theme-muted);
+  transition: color 0.2s;
+}
+
+.music-lyric.active {
+  color: var(--theme-accent);
+}
+
+.music-lyrics-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--theme-muted);
+}
+
+/* ── 曲目信息与控制 ─────────────────────────────────────────────────── */
+
+.music-no {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  color: var(--theme-muted);
+}
+
+.music-title {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.music-artist {
+  margin: 0;
+  font-size: 14px;
+  color: var(--theme-accent);
+}
+
+.music-album {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--theme-muted);
+}
+
+.music-seek {
+  width: 100%;
+  accent-color: var(--theme-accent);
+}
+
+.music-times {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--theme-muted);
+}
+
+.music-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.music-btn {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--theme-ink);
+  background: none;
+  border: 1px solid var(--theme-line);
+  cursor: pointer;
+}
+
+.music-btn:hover {
+  color: var(--theme-accent);
+  border-color: var(--theme-accent);
+}
+
+.music-play {
+  width: 48px;
+  height: 48px;
+}
+
+.music-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--theme-ink);
+  background: none;
+  border: 1px solid var(--theme-line);
+  cursor: pointer;
+}
+
+.music-chip:hover {
+  color: var(--theme-accent);
+  border-color: var(--theme-accent);
+}
+
+.music-vol {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--theme-muted);
+}
+
+.music-vol input {
+  width: 110px;
+  accent-color: var(--theme-accent);
+}
+
+.music-vol output {
+  min-width: 38px;
+  text-align: right;
+}
+
+/* ── 播放参数 / 曲目表 ──────────────────────────────────────────────── */
+
+.music-params,
+.music-listwrap {
+  border-top: 1px solid var(--theme-line);
+  padding-top: 10px;
+}
+
+.music-params dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 18px;
+}
+
+.music-params dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.music-params dt {
+  color: var(--theme-muted);
+  white-space: nowrap;
+}
+
+.music-params dd {
+  margin: 0;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.music-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.music-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 26px 30px minmax(0, 1fr) 22px 40px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  text-align: left;
+  color: var(--theme-ink);
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.music-item:hover {
+  border-color: var(--theme-line);
+}
+
+.music-item.active {
+  border-color: var(--theme-accent);
+}
+
+.music-item-no {
+  font-size: 11px;
+  color: var(--theme-muted);
+}
+
+.music-item-cover {
+  width: 30px;
+  height: 30px;
+  background-size: cover;
+  background-position: center;
+}
+
+.music-item-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.music-item-title {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.music-item-sub {
+  font-size: 10px;
+  color: var(--theme-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.music-item-len {
+  font-size: 11px;
+  text-align: right;
+  color: var(--theme-muted);
+}
+
+/* 当前曲目的波形：只在真的在播时跳动（.is-playing 由播放器切换）。 */
+.music-eq {
+  display: none;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.music-item.active .music-eq {
+  display: inline-flex;
+}
+
+.music-eq i {
+  width: 2px;
+  height: 4px;
+  background: var(--theme-accent);
+}
+
+.music-modal.is-playing .music-item.active .music-eq i {
+  animation: music-eq 0.9s ease-in-out infinite;
+}
+
+.music-modal.is-playing .music-item.active .music-eq i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.music-modal.is-playing .music-item.active .music-eq i:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .music-modal.is-playing .music-item.active .music-eq i {
+    animation: none;
+    height: 9px;
+  }
+}
+
+@keyframes music-eq {
+  0%,
+  100% {
+    height: 4px;
+  }
+  50% {
+    height: 12px;
+  }
+}
+
+/* 舞台缩放：**不能写在 .music-modal 上**。
+   SurfaceTransition 会对 .terminal-modal（= .music-modal）跑 element.animate() 改 transform，
+   而 Web Animations 的效果优先级高于普通 CSS 声明 —— 直接写在它上面会被动画覆盖掉
+   （实测：变量与规则都对，computed transform 仍是 translateY(12px)，没有缩放）。
+   所以缩放放在不参与动画的包裹层 .music-scale 上。 */
+.music-scale {
+  transform: scale(var(--music-stage-scale, 1));
+  transform-origin: center;
+}

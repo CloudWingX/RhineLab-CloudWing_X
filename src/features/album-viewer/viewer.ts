@@ -22,6 +22,11 @@ export interface AlbumViewerOptions {
   /** 关闭完成后回调：焦点归还与音效由门面处理。 */
   onClosed: () => void;
   playSound: (name: "tick") => void;
+  /**
+   * 当前舞台缩放。浮层挂在 document.body 上、不在 #stage 里，因此不会被舞台的 transform 缩放，
+   * 而 #stage 里的三个系统弹框是被缩放过的 —— 要视觉一致就得自己乘上它。
+   */
+  stageScale: () => number;
 }
 
 const ICON_PREV = "←";
@@ -49,6 +54,19 @@ export class AlbumViewer {
 
   constructor(options: AlbumViewerOptions) {
     this.options = options;
+    // 窗口尺寸变了舞台缩放就变，浮层开着时要跟着变。
+    window.addEventListener("resize", () => {
+      if (this.isActive) this.applyScale();
+    });
+  }
+
+  /** 把舞台缩放写进浮层，使窗口盒与 #stage 里的三个系统弹框视觉一致。 */
+  private applyScale(): void {
+    const scale = this.options.stageScale();
+    this.dialog?.style.setProperty(
+      "--album-stage-scale",
+      String(Number.isFinite(scale) && scale > 0 ? scale : 1),
+    );
   }
 
   get isActive(): boolean {
@@ -76,6 +94,7 @@ export class AlbumViewer {
     const dialog = this.dialog!;
     if (!dialog.open) dialog.showModal();
     this.backdrop!.hidden = true;
+    this.applyScale();
     this.render(true);
     this.transition!.show(reduced);
     dialog.focus({ preventScroll: true });
@@ -123,6 +142,7 @@ export class AlbumViewer {
     dialog.setAttribute("aria-label", "影像档案");
     dialog.innerHTML = `
       <div class="modal-backdrop">
+        <div class="album-scale">
         <section class="terminal-modal album-modal" role="document">
           <div class="modal-top"><span>CLOUDWING / IMAGE ARCHIVE</span><button data-album-action="close" aria-label="关闭查看器">CLOSE <span>×</span></button></div>
           <h2><span id="album-viewer-title">图集</span><small id="album-viewer-subtitle"></small></h2>
@@ -137,6 +157,7 @@ export class AlbumViewer {
           <div id="album-viewer-strip" class="album-strip" role="tablist" aria-label="图集缩略图"></div>
           <div class="modal-bottom"><span id="album-viewer-position"></span><span>IMAGE ARCHIVE <i>●</i> ONLINE</span></div>
         </section>
+        </div>
       </div>`;
     dialog.addEventListener("click", (event) => this.onClick(event));
     // ESC：<dialog> 会先派发 cancel；接管它，好让退出动效与手动关闭走同一条路。

@@ -37,6 +37,7 @@ import {
   archiveColumns,
   columnFiles,
   fileLocation,
+  musicTracks,
   type ArchiveAlbum,
 } from "./data";
 import { TerminalAudio } from "./audio";
@@ -46,6 +47,7 @@ import { loadBootWebfonts } from "./boot-lettering";
 // 身份门（src/features/auth/）已按 docs/FEATURES.md §4 移除，其导出不再引入。
 import { createReaderFeature, READER_ENTRY_SELECTOR } from "./features/reader";
 import { createAlbumViewerFeature } from "./features/album-viewer";
+import { createMusicPlayerFeature } from "./features/music-player";
 
 const $ = <T extends HTMLElement = HTMLElement>(selector: string) =>
   document.querySelector<T>(selector)!;
@@ -59,6 +61,7 @@ $("#stage").innerHTML = `
   <nav class="system-nav" aria-label="系统导航">
     <button data-action="search"><span class="nav-glyph">⌕</span> ARCHIVE INDEX <span class="key">/</span></button>
     <button data-action="saved" aria-label="查看收藏档案" title="收藏档案">＋ SAVED <span id="saved-count">00</span></button>
+    <button data-action="open-music" aria-label="打开音乐播放器" title="音乐播放器"><span class="nav-glyph">♪</span> MUSIC</button>
     <button data-action="settings" aria-label="系统设置" title="系统设置"><span class="settings-glyph">◷</span></button>
   </nav>
   <button id="skip" class="skip" data-action="skip">ENTER SYSTEM <span>↗</span></button>
@@ -137,14 +140,32 @@ const albumViewerFeature = createAlbumViewerFeature({
   notify: (message) => notify(message),
   playSound: (name) => audio.play(name),
   setSceneInputSuspended: (value) => scene?.setInputSuspended(value),
+  stageScale: () => stageScaleValue,
 });
 
-// 顶层浮层的统一判断：阅读层与影像查看器都挂在 document.body 上，都拥有焦点与输入锁。
-// 核心在这些判断上只关心"有没有浮层占屏"，所以合并判断，避免每加一个浮层
-// 就要在十余处逐一追加。
-const overlayActive = () => readerFeature.isActive() || albumViewerFeature.isActive();
+// --- 音乐播放器（功能模块：src/features/music-player/）---
+// 与阅读层 / 影像查看器同构：浮层、播放控制、歌词同步都在模块内部；这里只装配宿主端口。
+// 打开时把环境背景音乐（3 条 stem）停掉，关闭时交还 —— 否则两路声音会叠在一起。
+const musicPlayerFeature = createMusicPlayerFeature({
+  isArchiveReady: () => ready,
+  isIdentityGateActive: () => identityActive(),
+  currentMode: () => mode,
+  notify: (message) => notify(message),
+  playSound: (name) => audio.play(name),
+  setSceneInputSuspended: (value) => scene?.setInputSuspended(value),
+  setBackgroundMusic: (enabled) => audio.configure({ ...prefs, music: enabled && prefs.music }),
+  stageScale: () => stageScaleValue,
+});
+
+// 顶层浮层的统一判断：阅读层、影像查看器与音乐播放器都挂在 document.body 上，
+// 都拥有焦点与输入锁。核心在这些判断上只关心"有没有浮层占屏"，所以合并判断，
+// 避免每加一个浮层就要在十余处逐一追加。
+const overlayActive = () =>
+  readerFeature.isActive() || albumViewerFeature.isActive() || musicPlayerFeature.isActive();
 const fromOverlaySurface = (event: Event) =>
-  readerFeature.ownsEvent(event) || albumViewerFeature.ownsEvent(event);
+  readerFeature.ownsEvent(event) ||
+  albumViewerFeature.ownsEvent(event) ||
+  musicPlayerFeature.ownsEvent(event);
 
 // --- 启动身份门已移除 ---
 // 上游这个模板在序幕之前加了一层「身份门 / 登录注册」功能（src/features/auth/）。
@@ -327,6 +348,10 @@ function savePrefs() {
   $("#stage").classList.toggle("reduce-surfaces", !motionActive("surfaceTransitions"));
 }
 let previousLayout = "";
+// 舞台缩放。--stage-scale 是设在 #stage 的元素样式上的（不是 :root），
+// 所以挂在 document.body 上的功能浮层（阅读层 / 影像查看器 / 音乐播放器）读不到它，
+// 只能由宿主端口把数值给出去。
+let stageScaleValue = 1;
 function fit() {
   const stage = $("#stage");
   const viewport = $("#viewport");
@@ -341,6 +366,7 @@ function fit() {
   stage.dataset.layout = kind;
   stage.dataset.touch = String(coarse);
   viewport.dataset.mobileBoot = String(mode === "boot" && (coarse || viewport.clientWidth < 1100));
+  stageScaleValue = scale;
   stage.style.setProperty("--stage-scale", String(scale));
   stage.style.setProperty("--opening-width", `${width}px`);
   stage.style.setProperty("--opening-height", `${height}px`);
@@ -947,6 +973,11 @@ document.addEventListener("click", (e) => {
     el.focus({ preventScroll: true });
     albumViewerFeature.open(record, el, !motionActive("viewerNavigation"));
   }
+  if (action === "open-music") {
+    // Safari 不一定在点击时给按钮焦点；显式捕获入口，关闭时才能可靠归还焦点。
+    el.focus({ preventScroll: true });
+    musicPlayerFeature.open(musicTracks, el, !motionActive("viewerNavigation"));
+  }
   if (action === "search" || action === "saved" || action === "settings") {
     el.focus({ preventScroll: true });
     openModal(action);
@@ -1078,6 +1109,8 @@ window.addEventListener("pageshow", (event) => {
   readerFeature.release();
   // 影像查看器没有"待处理请求"，直接从模块门面收起即可（它的 pagehide 也会自理一次）。
   albumViewerFeature.closeIfActive();
+  // 音乐播放器同理；它还会在关闭时把环境背景音乐交还给用户。
+  musicPlayerFeature.closeIfActive();
   scene?.setInputSuspended(false);
 });
 
@@ -1324,6 +1357,7 @@ Object.assign(window, {
       resolvedTheme: resolvedDark() ? "dark" : "light",
       reader: readerFeature.snapshot(),
       albumViewer: albumViewerFeature.snapshot(),
+      musicPlayer: musicPlayerFeature.snapshot(),
       bootTime: mode === "boot" ? (frozenTime ?? performance.now() / 1000 - bootStart) + 5 : null,
       selected: records[selected].postId,
       saved: [...saved],
@@ -1337,5 +1371,6 @@ if (import.meta.hot) {
     // 热更新不得留下第二个阅读层或其监听器与输入锁。
     readerFeature.dispose();
     albumViewerFeature.dispose();
+    musicPlayerFeature.dispose();
   });
 }

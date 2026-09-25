@@ -29,6 +29,8 @@ export interface AlbumViewerHost {
   playSound(name: "page-open" | "page-close" | "tick"): void;
   /** 查看器打开期间冻结三维输入（指针、滚轮、键盘）。 */
   setSceneInputSuspended(suspended: boolean): void;
+  /** 当前舞台缩放：浮层挂在 body 上、不在 #stage 里，需要自己乘上它才能与系统弹框等大。 */
+  stageScale(): number;
 }
 
 /** DEV 审阅用的只读快照。 */
@@ -85,6 +87,7 @@ export function createAlbumViewerFeature(host: AlbumViewerHost): AlbumViewerFeat
           host.playSound("page-close");
         },
         playSound: (name) => host.playSound(name),
+        stageScale: () => host.stageScale(),
       });
       viewer = instance;
       return instance;
