@@ -2,7 +2,7 @@ import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
 import remarkCjkFriendly from "remark-cjk-friendly";
 
-const site = process.env.BLOG_SITE_ORIGIN || "https://example.com";
+const site = process.env.BLOG_SITE_ORIGIN || "https://cloudwing.top";
 // IR5 fixture builds run the same configuration against synthetic content and
 // write somewhere outside `dist/`; both variables are unset for a normal build.
 const outDir = process.env.BLOG_OUT_DIR || "../../dist";

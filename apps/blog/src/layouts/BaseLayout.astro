@@ -24,10 +24,10 @@ const {
   modifiedTime,
   author,
 } = Astro.props;
-const site = Astro.site ?? new URL("https://example.com");
+const site = Astro.site ?? new URL("https://cloudwing.top");
 const canonicalUrl = new URL(canonical ?? Astro.url.pathname, site);
 const rssUrl = new URL("/rss.xml", site).href;
-const fullTitle = title === "示例博客" ? title : `${title} · 示例博客`;
+const fullTitle = title === "云翼" ? title : `${title} · 云翼`;
 const ogImageUrl = ogImage ? new URL(ogImage, site).href : undefined;
 ---
 
@@ -41,9 +41,9 @@ const ogImageUrl = ogImage ? new URL(ogImage, site).href : undefined;
     <link rel="canonical" href={canonicalUrl.href} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="alternate" type="application/rss+xml" title="示例博客" href={rssUrl} />
+    <link rel="alternate" type="application/rss+xml" title="云翼" href={rssUrl} />
     <meta property="og:type" content={ogType} />
-    <meta property="og:site_name" content="示例博客" />
+    <meta property="og:site_name" content="云翼" />
     <meta property="og:locale" content="zh_CN" />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
@@ -57,7 +57,7 @@ const ogImageUrl = ogImage ? new URL(ogImage, site).href : undefined;
   <body>
     <a class="skip-link" href="#main">跳到正文</a>
     <header class="site-header">
-      <a class="site-brand" href="/">示例博客</a>
+      <a class="site-brand" href="/">云翼</a>
       <nav class="site-nav" aria-label="站点导航">
         <a href="/archive/">归档</a>
         <a href="/categories/">分类</a>
@@ -74,7 +74,7 @@ const ogImageUrl = ogImage ? new URL(ogImage, site).href : undefined;
       <slot />
     </main>
     <footer class="site-footer">
-      <p>© {new Date().getUTCFullYear()} Joyce · 由 Markdown 与 Astro 生成</p>
+      <p>© {new Date().getUTCFullYear()} CloudWing_X · 由 Markdown 与 Astro 生成</p>
     <!-- 备案信息（按需填写）：若站点在中国大陆备案，可在此处放回工信部备案号与公安备案号。
          本模板默认不包含任何备案号与备案图标。 -->
     </footer>

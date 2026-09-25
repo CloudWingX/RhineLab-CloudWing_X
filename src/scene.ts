@@ -705,7 +705,7 @@ export class ArchiveScene {
     c.fillRect(12, 12, 1000, 6);
     c.fillRect(12, 419, 1000, 3);
     c.font = "bold 81px MiSans";
-    c.fillText("RHINE LAB, LLC.", 22, 116);
+    c.fillText("CLOUDWING", 22, 116);
     c.font = "32px MiSans";
     c.fillStyle = "#878476";
     c.fillText("INTERNAL DATABASE", 25, 174);

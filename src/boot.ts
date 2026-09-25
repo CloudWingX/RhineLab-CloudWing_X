@@ -116,7 +116,7 @@ export class BootSequence {
       "processingGlitch",
     ]);
     this.brandLettering = new BootLettering(this.brandLines[0], ["brand"]);
-    this.brandLettering.setText("RHINE LAB");
+    this.brandLettering.setText("CLOUDWING");
     for (const [selector, key, text] of [
       [".scan > span", "permission", "PERMISSION AUTHORIZED"],
       [".welcome-heading", "welcome", "WELCOME TO"],
@@ -125,7 +125,7 @@ export class BootSequence {
       new BootLettering(this.el(selector), [key]).setText(text);
     }
     this.companyInk.forEach((el) => {
-      new BootLettering(el.querySelector("span")!, ["company"]).setText("RHINE LAB.LLC.");
+      new BootLettering(el.querySelector("span")!, ["company"]).setText("CLOUDWING");
     });
   }
   private el(selector: string) {

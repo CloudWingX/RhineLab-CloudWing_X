@@ -2,7 +2,7 @@ import { bootMotion } from "./boot-motion";
 
 // The original 25 fps text reveal, including the first character of each field.
 // Glitch restoration at frames 479/485/486 is not new typing.
-export const LEGACY_LABEL = "JOYCE MOORE";
+export const LEGACY_LABEL = "CLOUDWING_X";
 
 const SEGMENTS: ReadonlyArray<readonly [number, number]> = [
   [170, 187],
