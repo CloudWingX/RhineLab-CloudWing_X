@@ -77,7 +77,26 @@
   `build:reader-fixtures`。
 - **行为说明**：[READER.md](READER.md)。
 
-### 2.3 其他新增能力（不在 `src/features/`）
+### 2.3 影像档案（图集）查看器（`album-viewer`）
+
+- **职责**：在**档案记录页面**（档案详情面板）点「查看详情」，原地打开一个居中窗口，逐张浏览该
+  图集（Minecraft / Peak / 黑暗之魂2 / AI生成 / 壁纸）的影像——翻页、缩略图条、键盘导航、
+  焦点与关闭事务。窗口复用三个系统弹框与阅读层的同一套表面。
+- **目录**：`src/features/album-viewer/`
+  - `index.ts` 唯一入口 + 门面（懒加载、归属守卫、快照、HMR 清理）
+  - `viewer.ts` 浮层生命周期；`viewer.css` 样式；`styles.ts` 样式懒加载入口
+- **加载方式**：按需 `import()`。查看器与其样式表都不进三维入口首屏。
+- **宿主端口** `AlbumViewerHost`：`isArchiveReady`、`isIdentityGateActive`、`currentMode`、
+  `notify`、`playSound`、`setSceneInputSuspended`。
+- **门面** `AlbumViewerFeature`：`isActive`、`ownsEvent`、`open`、`closeIfActive`、
+  `withClosed`、`snapshot`、`dispose`。
+- **数据来源**：`content/gallery.json` → `scripts/blog/build-lab-content.mjs` 生成
+  `.generated/lab-content.json` 的 `albums`（与文章档案的 `records` 分开；**影像档案不进三维
+  阵列**，因此不改 `scene.ts`，详情面板也不让相机进 detail 取景）。
+- **检查**：`check:features`（本模块暂无专属检查脚本）。
+- **行为说明**：[ALBUM.md](ALBUM.md)。
+
+### 2.4 其他新增能力（不在 `src/features/`）
 
 这些是构建面而不是运行时功能模块，保持原有目录：
 

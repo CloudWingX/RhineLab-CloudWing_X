@@ -28,7 +28,7 @@
 //   node scripts/migrate-content.mjs --from "D:/deep seek workplace/endfield-blog" --dry-run
 //   node scripts/migrate-content.mjs --from "D:/deep seek workplace/endfield-blog"
 
-import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, rmSync, cpSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 
@@ -194,6 +194,72 @@ if (SITE.title) {
   });
 }
 
+// 4) 影集：图片素材 + 图集数据
+//    图片按旧站路径原样搬到 apps/blog/public/shots/<dir>/，因此数据里的 image 路径无需改写。
+//    数据放在 content/gallery.json —— 与 content/lab-collections.json 同一约定：
+//    "内容侧的唯一数据源"（三维档案系统只读它，条目不散落在代码里）。
+//
+//    ★大类归属是显式表，不从图集名字猜★：新增图集时必须在这里归类，否则报错退出，
+//    避免新图集悄悄漏出档案系统。
+const ALBUM_CATEGORIES = [
+  { name: '游戏影像', albums: ['Minecraft', 'Peak', '黑暗之魂2'] },
+  { name: '影像图集', albums: ['AI生成', '壁纸'] },
+];
+
+const oldShotsDir = join(FROM, 'src/content/shots');
+const oldShotsPublic = join(FROM, 'public/shots');
+const newShotsPublic = join(TO, 'apps/blog/public/shots');
+
+const galleryItems = [];
+if (existsSync(oldShotsDir)) {
+  for (const f of readdirSync(oldShotsDir).filter((n) => n.endsWith('.md')).sort()) {
+    const { fm } = readMd(join(oldShotsDir, f));
+    const image = field(fm, 'image');
+    if (!image) continue;
+    galleryItems.push({
+      title: field(fm, 'title'),
+      game: field(fm, 'game') || '未分类',
+      date: field(fm, 'date'),
+      image,
+      aspect: field(fm, 'aspect') || '16:9',
+    });
+  }
+}
+const games = [...new Set(galleryItems.map((i) => i.game))];
+
+// 双向校验：每个图集恰好归属一个大类；大类里声明的图集必须真实存在。
+if (galleryItems.length) {
+  const classified = new Map();
+  for (const category of ALBUM_CATEGORIES) {
+    for (const album of category.albums) {
+      if (classified.has(album)) {
+        console.error(
+          `✗ 图集「${album}」被归入多个大类：「${classified.get(album)}」与「${category.name}」`,
+        );
+        process.exit(1);
+      }
+      classified.set(album, category.name);
+    }
+  }
+  const unclassified = games.filter((g) => !classified.has(g));
+  if (unclassified.length) {
+    console.error(`✗ 以下图集未在 ALBUM_CATEGORIES 中归类：${unclassified.join('、')}`);
+    process.exit(1);
+  }
+  const phantom = [...classified.keys()].filter((album) => !games.includes(album));
+  if (phantom.length) {
+    console.error(`✗ ALBUM_CATEGORIES 声明了不存在的图集：${phantom.join('、')}`);
+    process.exit(1);
+  }
+}
+
+const gallery = {
+  note: '图集数据源：由 scripts/migrate-content.mjs 从旧站 src/content/shots 生成。图片在 apps/blog/public/shots/。categories 是档案系统的两个大类，albums 的顺序即展示顺序。',
+  categories: ALBUM_CATEGORIES.map((c) => ({ name: c.name, albums: [...c.albums] })),
+  games,
+  items: galleryItems,
+};
+
 // ── 序列化 ──────────────────────────────────────────────────────────────
 const yamlArr = (arr) => `[${arr.map((s) => JSON.stringify(s)).join(', ')}]`;
 function toMd(e) {
@@ -278,3 +344,16 @@ if (pages.length) {
 }
 writeFileSync(join(TO, 'content/lab-collections.json'), JSON.stringify(labCollections, null, 2) + '\n', 'utf8');
 console.log(`✓ 已写入 ${outPosts.length} 篇文章 + ${pages.length} 个页面 + lab-collections.json`);
+
+// 影集：搬图片 + 写数据
+if (galleryItems.length && existsSync(oldShotsPublic)) {
+  cpSync(oldShotsPublic, newShotsPublic, { recursive: true });
+  writeFileSync(join(TO, 'content/gallery.json'), JSON.stringify(gallery, null, 2) + '\n', 'utf8');
+  console.log(
+    `✓ 已搬影集 ${galleryItems.length} 条 / ${games.length} 个图集 / ${gallery.categories.length} 个大类（图片 → apps/blog/public/shots/）`,
+  );
+  for (const category of gallery.categories) {
+    const count = galleryItems.filter((i) => category.albums.includes(i.game)).length;
+    console.log(`    [${category.name}] ${category.albums.join('、')} —— ${count} 张`);
+  }
+}

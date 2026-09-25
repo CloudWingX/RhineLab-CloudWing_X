@@ -1,0 +1,953 @@
+{
+  "note": "图集数据源：由 scripts/migrate-content.mjs 从旧站 src/content/shots 生成。图片在 apps/blog/public/shots/。categories 是档案系统的两个大类，albums 的顺序即展示顺序。",
+  "categories": [
+    {
+      "name": "游戏影像",
+      "albums": [
+        "Minecraft",
+        "Peak",
+        "黑暗之魂2"
+      ]
+    },
+    {
+      "name": "影像图集",
+      "albums": [
+        "AI生成",
+        "壁纸"
+      ]
+    }
+  ],
+  "games": [
+    "AI生成",
+    "黑暗之魂2",
+    "Minecraft",
+    "Peak",
+    "壁纸"
+  ],
+  "items": [
+    {
+      "title": "2026-09-11 · AI生成",
+      "game": "AI生成",
+      "date": "2026-09-11",
+      "image": "/shots/ai/ai-001.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-09-11 · AI生成",
+      "game": "AI生成",
+      "date": "2026-09-11",
+      "image": "/shots/ai/ai-002.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-09-11 · AI生成",
+      "game": "AI生成",
+      "date": "2026-09-11",
+      "image": "/shots/ai/ai-003.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-09-11 · AI生成",
+      "game": "AI生成",
+      "date": "2026-09-11",
+      "image": "/shots/ai/ai-004.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-09-11 · AI生成",
+      "game": "AI生成",
+      "date": "2026-09-11",
+      "image": "/shots/ai/ai-005.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-09-11 · AI生成",
+      "game": "AI生成",
+      "date": "2026-09-11",
+      "image": "/shots/ai/ai-006.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-09-11 · AI生成",
+      "game": "AI生成",
+      "date": "2026-09-11",
+      "image": "/shots/ai/ai-007.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-09-11 · AI生成",
+      "game": "AI生成",
+      "date": "2026-09-11",
+      "image": "/shots/ai/ai-008.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-09-11 · AI生成",
+      "game": "AI生成",
+      "date": "2026-09-11",
+      "image": "/shots/ai/ai-009.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2025-06-28",
+      "game": "黑暗之魂2",
+      "date": "2025-06-28",
+      "image": "/shots/ds2/ds2-001.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2025-06-29",
+      "game": "黑暗之魂2",
+      "date": "2025-06-29",
+      "image": "/shots/ds2/ds2-002.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2025-06-29",
+      "game": "黑暗之魂2",
+      "date": "2025-06-29",
+      "image": "/shots/ds2/ds2-003.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2025-06-29",
+      "game": "黑暗之魂2",
+      "date": "2025-06-29",
+      "image": "/shots/ds2/ds2-004.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2025-06-29",
+      "game": "黑暗之魂2",
+      "date": "2025-06-29",
+      "image": "/shots/ds2/ds2-005.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2025-06-29 · 黑暗之魂2",
+      "game": "黑暗之魂2",
+      "date": "2025-06-29",
+      "image": "/shots/ds2/ds2-006.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-25 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-25",
+      "image": "/shots/mc/mc-001.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-25 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-25",
+      "image": "/shots/mc/mc-002.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-26 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-26",
+      "image": "/shots/mc/mc-003.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-26 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-26",
+      "image": "/shots/mc/mc-004.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-26 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-26",
+      "image": "/shots/mc/mc-005.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-26 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-26",
+      "image": "/shots/mc/mc-006.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-26 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-26",
+      "image": "/shots/mc/mc-007.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-26 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-26",
+      "image": "/shots/mc/mc-008.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-26 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-26",
+      "image": "/shots/mc/mc-009.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-26 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-26",
+      "image": "/shots/mc/mc-010.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-26 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-26",
+      "image": "/shots/mc/mc-011.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-26 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-26",
+      "image": "/shots/mc/mc-012.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-26 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-26",
+      "image": "/shots/mc/mc-013.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-27 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-27",
+      "image": "/shots/mc/mc-014.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-27 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-27",
+      "image": "/shots/mc/mc-015.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-27 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-27",
+      "image": "/shots/mc/mc-016.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-27 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-27",
+      "image": "/shots/mc/mc-017.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-27 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-27",
+      "image": "/shots/mc/mc-018.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-27 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-27",
+      "image": "/shots/mc/mc-019.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-27 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-27",
+      "image": "/shots/mc/mc-020.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-27 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-27",
+      "image": "/shots/mc/mc-021.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-29 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-29",
+      "image": "/shots/mc/mc-022.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-06-30 · MC",
+      "game": "Minecraft",
+      "date": "2024-06-30",
+      "image": "/shots/mc/mc-023.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2024-10-06 · MC",
+      "game": "Minecraft",
+      "date": "2024-10-06",
+      "image": "/shots/mc/mc-024.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-07-05 · MC",
+      "game": "Minecraft",
+      "date": "2026-07-05",
+      "image": "/shots/mc/mc-025.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-15 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-15",
+      "image": "/shots/mc/mc-026.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-15 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-15",
+      "image": "/shots/mc/mc-027.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-15 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-15",
+      "image": "/shots/mc/mc-028.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-16 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-16",
+      "image": "/shots/mc/mc-029.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-16 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-16",
+      "image": "/shots/mc/mc-030.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-16 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-16",
+      "image": "/shots/mc/mc-031.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-16 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-16",
+      "image": "/shots/mc/mc-032.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-16 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-16",
+      "image": "/shots/mc/mc-033.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-16 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-16",
+      "image": "/shots/mc/mc-034.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-16 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-16",
+      "image": "/shots/mc/mc-035.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-18 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-18",
+      "image": "/shots/mc/mc-036.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-18 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-18",
+      "image": "/shots/mc/mc-037.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-18 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-18",
+      "image": "/shots/mc/mc-038.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-18 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-18",
+      "image": "/shots/mc/mc-039.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-18 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-18",
+      "image": "/shots/mc/mc-040.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-16",
+      "game": "Minecraft",
+      "date": "2026-08-16",
+      "image": "/shots/mc/mc-041.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-16",
+      "game": "Minecraft",
+      "date": "2026-08-16",
+      "image": "/shots/mc/mc-042.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-19",
+      "game": "Minecraft",
+      "date": "2026-08-19",
+      "image": "/shots/mc/mc-043.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-20",
+      "game": "Minecraft",
+      "date": "2026-08-20",
+      "image": "/shots/mc/mc-044.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-20",
+      "game": "Minecraft",
+      "date": "2026-08-20",
+      "image": "/shots/mc/mc-045.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-20",
+      "game": "Minecraft",
+      "date": "2026-08-20",
+      "image": "/shots/mc/mc-046.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-20",
+      "game": "Minecraft",
+      "date": "2026-08-20",
+      "image": "/shots/mc/mc-047.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-20",
+      "game": "Minecraft",
+      "date": "2026-08-20",
+      "image": "/shots/mc/mc-048.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-20",
+      "game": "Minecraft",
+      "date": "2026-08-20",
+      "image": "/shots/mc/mc-049.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-050.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-051.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-052.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-053.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-054.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-055.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-056.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-057.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-058.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-059.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-060.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-061.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-062.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-063.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-064.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-065.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-066.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-067.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-068.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-069.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-070.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-25",
+      "game": "Minecraft",
+      "date": "2026-08-25",
+      "image": "/shots/mc/mc-071.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-26",
+      "game": "Minecraft",
+      "date": "2026-08-26",
+      "image": "/shots/mc/mc-072.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-26 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-26",
+      "image": "/shots/mc/mc-073.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-26 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-26",
+      "image": "/shots/mc/mc-074.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-08-26 · MC",
+      "game": "Minecraft",
+      "date": "2026-08-26",
+      "image": "/shots/mc/mc-075.webp",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-21 · Peak",
+      "game": "Peak",
+      "date": "2026-09-21",
+      "image": "/shots/peak/peak-001.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-21 · Peak",
+      "game": "Peak",
+      "date": "2026-09-21",
+      "image": "/shots/peak/peak-002.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-21 · Peak",
+      "game": "Peak",
+      "date": "2026-09-21",
+      "image": "/shots/peak/peak-003.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-21 · Peak",
+      "game": "Peak",
+      "date": "2026-09-21",
+      "image": "/shots/peak/peak-004.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-21 · Peak",
+      "game": "Peak",
+      "date": "2026-09-21",
+      "image": "/shots/peak/peak-005.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-21 · Peak",
+      "game": "Peak",
+      "date": "2026-09-21",
+      "image": "/shots/peak/peak-006.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-007.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-008.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-009.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-010.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-011.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-012.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-013.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-014.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-015.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-016.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-017.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-018.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-019.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-020.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-021.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-022.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-023.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-024.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-025.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-026.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-027.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · Peak",
+      "game": "Peak",
+      "date": "2026-09-22",
+      "image": "/shots/peak/peak-028.jpg",
+      "aspect": "16:9"
+    },
+    {
+      "title": "2026-09-22 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-09-22",
+      "image": "/shots/wp/wp-001.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-08-11 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-08-11",
+      "image": "/shots/wp/wp-002.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-08-11 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-08-11",
+      "image": "/shots/wp/wp-003.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-08-21 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-08-21",
+      "image": "/shots/wp/wp-004.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-08-21 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-08-21",
+      "image": "/shots/wp/wp-005.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-08-21 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-08-21",
+      "image": "/shots/wp/wp-006.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-08-21 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-08-21",
+      "image": "/shots/wp/wp-007.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-08-21 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-08-21",
+      "image": "/shots/wp/wp-008.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-08-22 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-08-22",
+      "image": "/shots/wp/wp-009.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-08-22 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-08-22",
+      "image": "/shots/wp/wp-010.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-08-22 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-08-22",
+      "image": "/shots/wp/wp-011.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-08-22 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-08-22",
+      "image": "/shots/wp/wp-012.webp",
+      "aspect": "1:1"
+    },
+    {
+      "title": "2026-08-22 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-08-22",
+      "image": "/shots/wp/wp-013.webp",
+      "aspect": "3:2"
+    },
+    {
+      "title": "2026-08-22 · 壁纸",
+      "game": "壁纸",
+      "date": "2026-08-22",
+      "image": "/shots/wp/wp-014.webp",
+      "aspect": "1:1"
+    }
+  ]
+}

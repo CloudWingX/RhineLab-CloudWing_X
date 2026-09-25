@@ -1,0 +1,135 @@
+/**
+ * 影像档案（图集）查看器的表面样式。
+ *
+ * 只在 `dialog.album-viewer` 子树内生效：不写 `:root` / `body` / 全局元素选择器，
+ * 因此三维应用完全不受影响。遮罩、窗口盒与进出动效复用共享的
+ * `.modal-backdrop` / `.terminal-modal` / `SurfaceTransition`，所以它与
+ * ARCHIVE INDEX / SAVED / SYSTEM 三个弹框以及阅读层是同一套表面。
+ *
+ * 颜色一律走 `--theme-*`（由 `paintTheme` 在 `:root` 上按明暗插值），
+ * 不写死色值——这样浅色与深色主题都自动成立，不必再往 theme.css 的
+ * `[data-dark-surface]` 清单里加选择器。
+ */
+dialog.album-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* 未打开时必须保持隐藏：不能让任何布局规则盖过它。 */
+dialog.album-viewer:not([open]) {
+  display: none;
+}
+
+dialog.album-viewer[open] {
+  display: block;
+}
+
+.album-modal {
+  display: flex;
+  flex-direction: column;
+}
+
+.album-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  border-top: 1px solid var(--theme-line);
+  border-bottom: 1px solid var(--theme-line);
+}
+
+.album-nav {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--theme-ink);
+  background: none;
+  border: 1px solid var(--theme-line);
+  cursor: pointer;
+}
+
+.album-nav:hover:not(:disabled) {
+  color: var(--theme-accent);
+  border-color: var(--theme-accent);
+}
+
+.album-nav:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.album-frame {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.album-frame img {
+  display: block;
+  max-width: 100%;
+  max-height: 430px;
+  object-fit: contain;
+  background: var(--theme-field);
+}
+
+.album-frame figcaption {
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  color: var(--theme-muted);
+}
+
+.album-strip {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 14px 0 0;
+  scrollbar-width: thin;
+}
+
+.album-strip button {
+  flex: 0 0 auto;
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+.album-strip button.active {
+  opacity: 1;
+  border-color: var(--theme-accent);
+}
+
+.album-strip button:focus-visible {
+  outline: 2px solid var(--theme-accent);
+  outline-offset: 2px;
+}
+
+.album-strip img {
+  display: block;
+  width: 62px;
+  height: 38px;
+  object-fit: cover;
+}

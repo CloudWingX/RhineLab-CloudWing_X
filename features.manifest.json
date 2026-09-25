@@ -51,6 +51,42 @@
       "docs": [
         "docs/READER.md"
       ]
+    },
+    {
+      "id": "album-viewer",
+      "title": "影像档案（图集）查看器",
+      "dir": "src/features/album-viewer",
+      "entry": "src/features/album-viewer/index.ts",
+      "publicApi": [
+        "createAlbumViewerFeature",
+        "ALBUM_VIEWER_ENTRY_SELECTOR"
+      ],
+      "hostPort": "AlbumViewerHost",
+      "facade": "AlbumViewerFeature",
+      "eager": false,
+      "reason": "查看器浮层与样式表按需加载：图集是少数派入口，三维入口首屏不为它付费。",
+      "styles": [
+        "viewer.css"
+      ],
+      "styleEntry": "src/features/album-viewer/styles.ts",
+      "checks": [],
+      "reviewContract": [
+        "active",
+        "album",
+        "index",
+        "moduleLoaded"
+      ],
+      "runtimeMarkers": [
+        "album-viewer"
+      ],
+      "serverSide": [],
+      "ops": [],
+      "scripts": [],
+      "shared": [],
+      "surfaces": [],
+      "docs": [
+        "docs/ALBUM.md"
+      ]
     }
   ]
 }

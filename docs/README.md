@@ -14,6 +14,7 @@
 | [AUTHORING.md](AUTHORING.md) | 写作与内容维护：目录约定、frontmatter 字段、草稿与未来文章、URL 与重定向、三维主题映射、常见问题 |
 | [BUILD.md](BUILD.md) | 构建与发布：环境准备、构建顺序、本地预览、资源白名单、release 打包与激活、回滚、健康检查、排障 |
 | [READER.md](READER.md) | 沉浸式全文阅读：模块职责、页面契约、窗口与布局参数、控件与目录导航、内容白名单与安全、滚动恢复、验证命令 |
+| [ALBUM.md](ALBUM.md) | 影像档案（图集）查看器：两个大类与档案记录的关系、数据来源、模块职责、行为与验证 |
 | [IDENTITY.md](IDENTITY.md) | 账号体系：三种身份、用户名/密码规则、状态机、接口与错误、Cookie/CSRF/Origin、超时与限流、取消竞争不变量、账号库管理（CLI 与管理 API）、与博客共享登录态、部署与运维 |
 | [UPSTREAM.md](UPSTREAM.md) | 上游来源与署名：只读远端配置、相对上游的差异、第三方资源与许可、处理上游更新的原则 |
 | [fonts/README.md](fonts/README.md) | 字体来源、许可与重建方式（MiSans 正文/UI、JetBrains Maple Mono 代码） |
@@ -26,6 +27,8 @@
 - **要部署上线**：[BUILD.md](BUILD.md) → [BLOG-MAINTAIN-PERFECT.md](../BLOG-MAINTAIN-PERFECT.md)
 - **要增删功能模块**：[FEATURES.md](FEATURES.md) → [src/features/README.md](../src/features/README.md)
 - **要改阅读层**：[READER.md](READER.md) → `src/features/reader/` 与 `scripts/reading/`
+- **要改影像档案（图集）**：[ALBUM.md](ALBUM.md) → `src/features/album-viewer/` 与
+  `content/gallery.json`
 - **要改登录/注册或账号库**：[IDENTITY.md](IDENTITY.md) §8–§9 → `shared/auth/`、
   `src/features/auth/`、`services/lab-auth/`（CLI 与管理 API）
 - **要给博客加登录态相关界面**：[IDENTITY.md](IDENTITY.md) §9 → `apps/blog/src/scripts/account.ts`

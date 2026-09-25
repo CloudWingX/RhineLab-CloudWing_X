@@ -32,10 +32,13 @@ import { BootSequence } from "./boot";
 import { wrap, type ArchiveNavigation } from "./archive-loop";
 import {
   records,
+  albums,
+  albumCategories,
   categories,
   archiveColumns,
   columnFiles,
   fileLocation,
+  type ArchiveAlbum,
 } from "./data";
 import { TerminalAudio } from "./audio";
 import { audioSettingsMarkup } from "./audio-settings";
@@ -43,6 +46,7 @@ import { paintTheme, themeSettingsMarkup, type ThemePreference } from "./theme-u
 import { loadBootWebfonts } from "./boot-lettering";
 // 身份门（src/features/auth/）已按 docs/FEATURES.md §4 移除，其导出不再引入。
 import { createReaderFeature, READER_ENTRY_SELECTOR } from "./features/reader";
+import { createAlbumViewerFeature } from "./features/album-viewer";
 
 const $ = <T extends HTMLElement = HTMLElement>(selector: string) =>
   document.querySelector<T>(selector)!;
@@ -104,6 +108,9 @@ let modal: "search" | "saved" | "settings" | null = null,
   searchQuery = "",
   filter = "全部档案";
 let activeTab = "overview";
+// 详情面板当前显示的是哪一种档案：文章档案（records[selected]）还是影像档案（图集）。
+// 影像档案在三维阵列里没有对应物体，所以不能只靠 selected 推断，必须单独记住。
+let albumDetail: ArchiveAlbum | null = null;
 const reviewParams = new URLSearchParams(location.search);
 
 // --- immersive reader（功能模块：src/features/reader/）---
@@ -122,9 +129,24 @@ const readerFeature = createReaderFeature({
   playSound: (name) => audio.play(name),
   setSceneInputSuspended: (value) => scene?.setInputSuspended(value),
 });
-const readerActive = () => readerFeature.isActive();
-/** 事件是否属于阅读层表面（弹框与其顶层）。 */
-const fromReaderSurface = (event: Event) => readerFeature.ownsEvent(event);
+// --- 影像档案查看器（功能模块：src/features/album-viewer/）---
+// 与阅读层同构：浮层、翻页、缩略图条、焦点所有权都在模块内部；这里只装配宿主端口。
+// 图集在三维阵列里没有对应物体，所以打开查看器时三维输入被冻结，但相机不移动。
+const albumViewerFeature = createAlbumViewerFeature({
+  isArchiveReady: () => ready,
+  isIdentityGateActive: () => identityActive(),
+  currentMode: () => mode,
+  notify: (message) => notify(message),
+  playSound: (name) => audio.play(name),
+  setSceneInputSuspended: (value) => scene?.setInputSuspended(value),
+});
+
+// 顶层浮层的统一判断：阅读层与影像查看器都挂在 document.body 上，都拥有焦点与输入锁。
+// 核心在这些判断上只关心"有没有浮层占屏"，所以合并判断，避免每加一个浮层
+// 就要在十余处逐一追加。
+const overlayActive = () => readerFeature.isActive() || albumViewerFeature.isActive();
+const fromOverlaySurface = (event: Event) =>
+  readerFeature.ownsEvent(event) || albumViewerFeature.ownsEvent(event);
 
 // --- 启动身份门已移除 ---
 // 上游这个模板在序幕之前加了一层「身份门 / 登录注册」功能（src/features/auth/）。
@@ -361,7 +383,7 @@ $("#file-ticks").innerHTML = columnFiles(fileLocation(selected).lane)
   .join("");
 const fileTicks = [...$("#file-ticks").querySelectorAll<HTMLButtonElement>("button")];
 
-function setMode(next: Mode) {
+function setMode(next: Mode, sceneMode?: "hidden" | "archive" | "detail") {
   const previousMode = mode;
   rollingTitles.forEach(title => title.update({ animated: motionActive("rollingText") && next === "archive" }));
   if (next !== "archive") {
@@ -394,21 +416,27 @@ function setMode(next: Mode) {
     if (!modal && next === "archive") $(".read-file").focus({ preventScroll: true });
   }
   $("#detail-ui").inert = next !== "detail" || Boolean(modal);
-  scene?.setMode(next === "boot" ? "hidden" : next);
+  // sceneMode 让"详情面板"与"三维取景"解耦：影像档案（图集）在三维里没有对应物体，
+  // 若照旧让场景进 detail，相机会聚焦到上一个被选中的文章卡片，背景露出不相关的物体。
+  scene?.setMode(sceneMode ?? (next === "boot" ? "hidden" : next));
   if (next !== "boot") {
     bootSequence.reset();
     $(".file-title").firstChild!.textContent = "FILE NUMBER: ";
     $("#stage").dataset.boot = "done";
     $("#cinema-caption").textContent = "";
   }
-  if (next === "detail" && previousMode !== "detail") {
+  if (next === "detail") {
+    // 详情内容取决于"当前详情目标"。从索引里直接换到另一个档案时 previousMode 也是
+    // detail，所以不能只在"首次进入"时渲染，否则会显示上一个档案的内容。
     renderDetail();
-    pendingDetailFocus = true;
+    if (previousMode !== "detail") pendingDetailFocus = true;
   }
 }
 function select(index: number, navigation?: ArchiveNavigation) {
   // A selection change closes the reader without restoring focus to its opener.
   readerFeature.closeIfActive();
+  // 三维阵列里的选择一定是文章档案：把详情目标切回文章，避免面板还停在图集上。
+  albumDetail = null;
   selected = (index + records.length) % records.length;
   columnMemory[fileLocation(selected).lane] = selected;
   if (mode === "detail") setMode("archive");
@@ -526,7 +554,14 @@ function toggleSaved() {
 }
 function renderDetail() {
   tabTransition.cancel();
+  // 影像档案（图集）走另一套模板：它没有文章的三页签，也没有绑在三维物体上的标题。
+  if (albumDetail) {
+    renderAlbumDetail(albumDetail);
+    return;
+  }
   const r = records[selected];
+  // 从图集切回文章档案时，把详情页上那块"三维物体"说明恢复出来。
+  $(".object-caption").hidden = false;
   $("#object-id").textContent = "NO." + String(selected + 1).padStart(3, "0");
   $("#detail-content").innerHTML = `
   <div class="detail-kicker"><span>FILE ${r.id}</span><span>${escapeHtml(r.clearance)}</span></div>
@@ -542,6 +577,43 @@ function renderDetail() {
   documentDecryption.reset($("#detail-content"), !motionActive("documentReveal") || scene.decryptionFrame.phase === "clear");
   setTab(activeTab, false);
 }
+/**
+ * 影像档案的详情。一条记录 = 一个图集：元数据换成图集信息（大类 / 收录张数 / 时间跨度），
+ * 操作区把「阅读全文」换成「查看详情」——点开后交给 features/album-viewer 接管。
+ */
+function renderAlbumDetail(album: ArchiveAlbum) {
+  // 图集在三维里没有物体：隐藏"DRAG TO INSPECT / 360° 查看文档模型"那一块，
+  // 否则它指向的是上一个被选中的文章卡片。
+  $(".object-caption").hidden = true;
+  $("#object-id").textContent = "NO." + String(album.displayNumber).padStart(3, "0");
+  $("#detail-content").innerHTML = `
+  <div class="detail-kicker"><span>FILE ${escapeHtml(album.id)}</span><span>${escapeHtml(album.category)}</span></div>
+  <h2>${escapeHtml(album.en)}</h2><div class="detail-title-cn">${escapeHtml(album.title)}<span>${escapeHtml(album.category)}</span></div>
+  <div class="detail-rule"></div>
+  <dl class="metadata"><div><dt>CATEGORY / 大类</dt><dd>${escapeHtml(album.category)}</dd></div><div><dt>VOLUME / 收录</dt><dd>${album.count} 张影像</dd></div><div><dt>PERIOD / 时间跨度</dt><dd>${escapeHtml(album.dateFrom)} → ${escapeHtml(album.dateTo)}</dd></div><div><dt>STATUS / 状态</dt><dd><i></i>已归档 · 可读取</dd></div></dl>
+  <div class="panel-label">ABSTRACT / 摘要</div><p>${escapeHtml(album.title)} 图集，属「${escapeHtml(album.category)}」，共 ${album.count} 张影像，时间跨度 ${escapeHtml(album.dateFrom)} 至 ${escapeHtml(album.dateTo)}。</p>
+  <div class="detail-actions"><button class="solid-button" data-action="open-album-viewer">VIEW IMAGES<span>查看详情</span></button></div>
+  <div class="detail-footnote"><span>ALBUM ${String(album.displayNumber).padStart(3, "0")} / ${String(albums.length).padStart(3, "0")}</span><span>${album.count} IMAGES</span></div>`;
+  $("#detail-content").setAttribute("tabindex", "-1");
+  documentDecryption.reset($("#detail-content"), !motionActive("documentReveal") || scene.decryptionFrame.phase === "clear");
+}
+
+/**
+ * 打开影像档案（图集）的档案记录。
+ *
+ * 与文章档案的区别：图集在三维阵列里没有对应物体，所以**不让三维相机进 detail 取景**
+ * （否则相机会聚焦到上一个被选中的文章卡片，背景露出不相关的物体）。面板复用同一层
+ * `#detail-ui`，背景停在档案阵列。
+ */
+function openAlbumDetail(album: ArchiveAlbum) {
+  readerFeature.closeIfActive();
+  albumDetail = album;
+  closeModal(() => {
+    setMode("detail", "archive");
+    audio.play("open");
+  });
+}
+
 function overview() {
   return `<div class="panel-label">ABSTRACT / 摘要</div><p>${escapeHtml(records[selected].abstract)}</p>`;
 }
@@ -654,7 +726,8 @@ function renderModal() {
     });
 }
 function renderResults() {
-  const results = records
+  const query = searchQuery.toLowerCase();
+  const postHits = records
     .map((r, i) => ({ r, i }))
     .filter(
       ({ r }) =>
@@ -662,18 +735,32 @@ function renderResults() {
         (filter === "全部档案" || r.category === filter) &&
         `${r.id} ${r.title} ${r.en} ${r.department} ${r.lead}`
           .toLowerCase()
-          .includes(searchQuery.toLowerCase()),
+          .includes(query),
     );
-  $("#search-results").innerHTML = results.length
-    ? results
-        .map(
-          ({ r, i }) =>
-            `<button class="result-row" data-result="${i}"><span class="result-name"><b>${r.id}</b><span>${escapeHtml(r.title)}<small>${escapeHtml(r.en)}</small></span>${saved.has(r.postId) ? "<i>＋</i>" : ""}</span><span>${escapeHtml(r.department)}</span><span>${r.clearance === "RESTRICTED" ? "CATALOG ONLY" : "AUTHORIZED"} <i>↗</i></span></button>`,
-        )
-        .join("")
+  // 影像档案（图集）同样进检索与大类筛选。它们没有 postId，因此不出现在「收藏」里。
+  const albumHits =
+    modal === "saved"
+      ? []
+      : albums.filter(
+          (a) =>
+            (filter === "全部档案" || a.category === filter) &&
+            `${a.id} ${a.title} ${a.en} ${a.category}`.toLowerCase().includes(query),
+        );
+  const rows = [
+    ...postHits.map(
+      ({ r, i }) =>
+        `<button class="result-row" data-result="${i}"><span class="result-name"><b>${r.id}</b><span>${escapeHtml(r.title)}<small>${escapeHtml(r.en)}</small></span>${saved.has(r.postId) ? "<i>＋</i>" : ""}</span><span>${escapeHtml(r.department)}</span><span>${r.clearance === "RESTRICTED" ? "CATALOG ONLY" : "AUTHORIZED"} <i>↗</i></span></button>`,
+    ),
+    ...albumHits.map(
+      (a) =>
+        `<button class="result-row" data-album="${escapeHtml(a.id)}"><span class="result-name"><b>${escapeHtml(a.id)}</b><span>${escapeHtml(a.title)}<small>${escapeHtml(a.category)}</small></span></span><span>${escapeHtml(a.category)}</span><span>${a.count} IMAGES <i>↗</i></span></button>`,
+    ),
+  ];
+  $("#search-results").innerHTML = rows.length
+    ? rows.join("")
     : `<div class="empty-results"><span>∅</span><strong>${modal === "saved" && !searchQuery ? "尚无收藏档案" : "没有匹配的档案"}</strong><p>${modal === "saved" && !searchQuery ? "读取档案时，选择 SAVE ARCHIVE 将其保存在此处。" : "尝试其他名称、档案编号，或切换科室分类。"}</p><button data-action="reset-search">${modal === "saved" ? "查看全部档案 →" : "重置检索 →"}</button></div>`;
   $("#result-count").textContent =
-    `${String(results.length).padStart(2, "0")} RECORDS FOUND`;
+    `${String(rows.length).padStart(2, "0")} RECORDS FOUND`;
 }
 function updateQualitySummary() {
   const summary = document.querySelector("#quality-summary");
@@ -694,7 +781,7 @@ function settingsMarkup() {
 document.addEventListener("input", (e) => {
   // The reader subtree never feeds the settings or search state, even if a
   // control there happens to carry a data-* hook.
-  if (fromReaderSurface(e) || readerActive()) return;
+  if (fromOverlaySurface(e) || overlayActive()) return;
   const slider = e.target as HTMLInputElement;
   if (slider.dataset.quality) {
     const output = document.querySelector<HTMLOutputElement>(`[data-quality-output="${slider.dataset.quality}"]`);
@@ -712,7 +799,7 @@ document.addEventListener("input", (e) => {
   }
 });
 document.addEventListener("change", (e) => {
-  if (fromReaderSurface(e) || readerActive()) return;
+  if (fromOverlaySurface(e) || overlayActive()) return;
   const el = e.target as HTMLInputElement;
   if (el.id === "quality-preset" && Object.hasOwn(qualityPresets, el.value)) {
     prefs.rendering = { ...qualityPresets[el.value as QualityPreset] };
@@ -752,11 +839,11 @@ document.addEventListener("change", (e) => {
 document.addEventListener("click", (e) => {
   // The reader owns its own subtree and is the only active layer while open:
   // no theme button, setting, search row or scene action may fire behind it.
-  if (fromReaderSurface(e)) return;
+  if (fromOverlaySurface(e)) return;
   // Esc/close can finish inside the reader's own handler while this event is
   // still propagating; a handled event must never reach the archive actions.
   if (e.defaultPrevented) return;
-  if (readerActive()) {
+  if (overlayActive()) {
     e.preventDefault();
     e.stopPropagation();
     return;
@@ -815,6 +902,11 @@ document.addEventListener("click", (e) => {
     );
     return;
   }
+  if (el.dataset.album) {
+    const album = albums.find((a) => a.id === el.dataset.album);
+    if (album) void readerFeature.withClosed(() => openAlbumDetail(album));
+    return;
+  }
   if (el.dataset.filter) {
     filter = el.dataset.filter;
     document
@@ -865,6 +957,11 @@ document.addEventListener("click", (e) => {
     setMode("archive");
     audio.play("back");
   }
+  if (action === "open-album-viewer" && mode === "detail" && albumDetail) {
+    // Safari 不一定在点击时给按钮焦点；显式捕获入口，关闭时才能可靠归还焦点。
+    el.focus({ preventScroll: true });
+    albumViewerFeature.open(albumDetail, el, !motionActive("viewerNavigation"));
+  }
   if (action === "search" || action === "saved" || action === "settings") {
     el.focus({ preventScroll: true });
     openModal(action);
@@ -898,7 +995,7 @@ document.addEventListener("keydown", (e) => {
   // Reader-first: it handles its own Escape/Tab/scroll keys and nothing here may
   // reach the archive while it is open. `defaultPrevented` covers the case where
   // the reader handled the key and finished closing during the same dispatch.
-  if (fromReaderSurface(e) || e.defaultPrevented || readerActive()) return;
+  if (fromOverlaySurface(e) || e.defaultPrevented || overlayActive()) return;
   if (viewer?.isOpen) return;
   if (identityActive()) return;
   if (modalClosing) {
@@ -980,8 +1077,8 @@ for (const type of ["pointerdown", "wheel", "touchstart"] as const) {
   document.addEventListener(
     type,
     (event) => {
-      if (fromReaderSurface(event)) return;
-      if (!readerActive()) return;
+      if (fromOverlaySurface(event)) return;
+      if (!overlayActive()) return;
       event.preventDefault();
       event.stopPropagation();
     },
@@ -994,6 +1091,8 @@ window.addEventListener("pageshow", (event) => {
   // Restored from the back/forward cache: make sure no lock survives and the
   // detail surface is operable again.
   readerFeature.release();
+  // 影像查看器没有"待处理请求"，直接从模块门面收起即可（它的 pagehide 也会自理一次）。
+  albumViewerFeature.closeIfActive();
   scene?.setInputSuspended(false);
 });
 
@@ -1083,7 +1182,7 @@ function frame(ms: number) {
     $("#detail-content").style.transform =
       `translateY(${(1 - scene.detailVisibility) * 18}px)`;
     $("#detail-content").inert = scene.detailVisibility < 0.1;
-    if (pendingDetailFocus && scene.detailVisibility >= 0.1 && !modal && !viewer?.isOpen && !readerActive()) {
+    if (pendingDetailFocus && scene.detailVisibility >= 0.1 && !modal && !viewer?.isOpen && !overlayActive()) {
       $("#detail-content").focus({ preventScroll: true });
       pendingDetailFocus = false;
     }
@@ -1239,6 +1338,7 @@ Object.assign(window, {
       colorTheme: prefs.colorTheme,
       resolvedTheme: resolvedDark() ? "dark" : "light",
       reader: readerFeature.snapshot(),
+      albumViewer: albumViewerFeature.snapshot(),
       bootTime: mode === "boot" ? (frozenTime ?? performance.now() / 1000 - bootStart) + 5 : null,
       selected: records[selected].postId,
       saved: [...saved],
@@ -1251,5 +1351,6 @@ if (import.meta.hot) {
     audio.dispose();
     // 热更新不得留下第二个阅读层或其监听器与输入锁。
     readerFeature.dispose();
+    albumViewerFeature.dispose();
   });
 }
