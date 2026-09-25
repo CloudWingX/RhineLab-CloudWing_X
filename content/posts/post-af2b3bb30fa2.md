@@ -1,0 +1,22 @@
+---
+id: post-af2b3bb30fa2
+title: "动效、SEO 和订阅源"
+description: "滚动显现、挂绳工牌、sitemap 与分享图、上下篇导航、giscus 评论、RSS——一天上了六样。"
+path: /2026/09/10/log/
+publishedAt: "2026-09-10T00:00:00+08:00"
+draft: false
+categories: ["站点日志"]
+tags: ["站点日志"]
+author: CloudWing_X
+legacyUrls: ["/posts/2026-09-10-log/"]
+---
+
+今天一口气上了六样东西：
+
+- 首页加了滚动显现，各页也有了入场动效；
+- 关于页挂上了吊牌工牌，可以拖下来玩；
+- SEO 补齐：sitemap、og:image、Twitter 卡片、canonical；
+- 作品页加了上下篇导航和 giscus 评论；
+- RSS 订阅源开通，地址是 /rss.xml。
+
+中间 Cloudflare 构建报了一次 ERESOLVE，根因是 react 版本浮动到了 19.3。把 react/react-dom 锁在 19.2.8，再加 legacy-peer-deps，就好了。

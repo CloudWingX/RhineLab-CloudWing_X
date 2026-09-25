@@ -1,0 +1,18 @@
+---
+id: post-b500f5c8ad9c
+title: "可变字重标题与背景统一"
+description: "删掉失效的字体外链；关于页上了可变字重效果；互动页背景换成全站统一的粒子层。"
+path: /2026/09/11/log/
+publishedAt: "2026-09-11T00:00:00+08:00"
+draft: false
+categories: ["站点日志"]
+tags: ["站点日志"]
+author: CloudWing_X
+legacyUrls: ["/posts/2026-09-11-log/"]
+---
+
+先把失效的 MiSans 字体外链删了——上游仓库 404，这个字体从来没生效过，却一直是个阻塞渲染的跨域请求。
+
+关于页上了可变字重效果：正文里的英文和数字会随光标位置变重，中文排版不受影响；标题也接入了 React Bits 的 VariableProximity，用的同一套参数。
+
+互动页的背景换成全站统一的粒子层，不再单独用深色背景。顺手修了背景高度只有 670px 的问题——补了 resize 重测和 ResizeObserver。

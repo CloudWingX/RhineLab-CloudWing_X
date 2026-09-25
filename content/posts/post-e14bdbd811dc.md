@@ -1,0 +1,18 @@
+---
+id: post-e14bdbd811dc
+title: "CloudWing 第一版上线"
+description: "站点第一版部署到 Cloudflare Pages 了，Astro 静态输出，暗色玻璃的基调也从这天定下来。"
+path: /2025/12/05/log/
+publishedAt: "2025-12-05T00:00:00+08:00"
+draft: false
+categories: ["站点日志"]
+tags: ["站点日志"]
+author: CloudWing_X
+legacyUrls: ["/posts/2025-12-05-log/"]
+---
+
+站点第一版今天上线了。
+
+页面只有三块：首页、画廊、关于。框架用的 Astro，输出纯静态，部署接的 Cloudflare Pages——推一下 main 就自动构建，线上地址是 cloudwing.pages.dev。
+
+设计定的是暗色玻璃的路线。这个底子一直沿用到今天，后面的迭代基本都是在这上面做加减法。

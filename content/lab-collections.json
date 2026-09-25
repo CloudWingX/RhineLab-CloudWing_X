@@ -1,29 +1,69 @@
 {
   "themes": [
     {
-      "name": "学习",
-      "description": "课程、软件与实验记录",
-      "postIds": ["wp-55"]
+      "name": "技术笔记",
+      "description": "开发、工具与踩坑记录",
+      "postIds": [
+        "post-42213d3764ff",
+        "post-ebc187e97f77",
+        "post-b458697c5a61"
+      ]
     },
     {
-      "name": "日常",
-      "description": "随笔与生活记录",
-      "postIds": ["wp-19", "wp-38", "wp-71"]
+      "name": "建站日志",
+      "description": "站点迭代的逐日记录",
+      "postIds": [
+        "post-e14bdbd811dc",
+        "post-4ba7abb72f79",
+        "post-4f65fa23809f",
+        "post-e525064553b0",
+        "post-af2b3bb30fa2",
+        "post-b500f5c8ad9c",
+        "post-d5a3e4b06512",
+        "post-4fcd9f561a08"
+      ]
     },
     {
-      "name": "技术",
-      "description": "开发、工具与迁移记录",
-      "postIds": []
+      "name": "更新档案",
+      "description": "按日归档的改动明细",
+      "postIds": [
+        "post-f10669e60586",
+        "post-1abbed3f65f4",
+        "post-be5fb6def516",
+        "post-bedc481d3179",
+        "post-df2113bcd1a8",
+        "post-3e2497082d71",
+        "post-d6dc7d9b72e6",
+        "post-bf0d391b87d1"
+      ]
     },
     {
-      "name": "阅读",
-      "description": "书影音与摘录",
-      "postIds": []
+      "name": "版本演进",
+      "description": "日志与更新的时间线",
+      "postIds": [
+        "post-e14bdbd811dc",
+        "post-4ba7abb72f79",
+        "post-4f65fa23809f",
+        "post-e525064553b0",
+        "post-af2b3bb30fa2",
+        "post-b500f5c8ad9c",
+        "post-d5a3e4b06512",
+        "post-4fcd9f561a08"
+      ]
     },
     {
-      "name": "归档",
-      "description": "早期文章与旧站内容",
-      "postIds": []
+      "name": "归档总览",
+      "description": "全部公开内容",
+      "postIds": [
+        "post-e14bdbd811dc",
+        "post-42213d3764ff",
+        "post-ebc187e97f77",
+        "post-4ba7abb72f79",
+        "post-4f65fa23809f",
+        "post-e525064553b0",
+        "post-af2b3bb30fa2",
+        "post-b500f5c8ad9c"
+      ]
     }
   ]
 }
