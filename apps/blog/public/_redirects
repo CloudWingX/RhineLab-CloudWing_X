@@ -1,0 +1,22 @@
+# Cloudflare Pages 重定向表
+#
+# ⚠️ 目前**刻意不含生效规则** —— 旧站到新站的 URL 映射取决于内容迁移的结果，
+#    在映射定下来之前写死会造出错误的跳转。这里先把待办列清。
+#
+# 背景：新旧两站的 URL 结构不同 ——
+#   旧站：/posts/<YYYY-MM-DD-slug>/、/blog/、/log/、/gallery/、/music/、/nav/、/calendar/
+#   本站：/<YYYY>/<MM>/<DD>/<slug>/（文章）、/archive/、/categories/、/tags/、/search/、/lab/
+# 两站重合、无需重定向的：/、/about/、/account/、/blog/
+#
+# 待映射（内容迁移完成后逐条填，写成 `<旧路径> <新路径> 301`）：
+#   /posts/                       → ?（文章列表；本站对应 /archive/ 或首页）
+#   /posts/<YYYY-MM-DD-slug>/     → ?（逐篇映射到 /<YYYY>/<MM>/<DD>/<slug>/）
+#   /log/                         → ?（旧站 changelog 全展开）
+#   /gallery/                     → ?（132 张影像 → 待搬的画廊功能）
+#   /music/                       → ?（待搬的音乐页）
+#   /nav/                         → ?（21 个站点的导航目录，待搬）
+#   /calendar/                    → ?（农历日历，待搬）
+#   /404                          → /404.html（重定向留空时 CF Pages 自动用 404.html）
+#
+# 已知需保留的重定向（本站自身旧路径，写在这里备忘，暂不生效）：
+#   # （无）

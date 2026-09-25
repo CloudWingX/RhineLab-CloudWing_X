@@ -1,0 +1,36 @@
+# Cloudflare Pages 响应头
+#
+# 为什么放在 apps/blog/public/：Astro 会把该目录原样复制到产物根，于是它落在 dist/_headers。
+# 本项目原本没有 CF Pages 配置（模板自带 vercel.json、ops/ 面向 VPS），这是为 CF Pages 新加的。
+#
+# ⚠️ 缓存策略**按实际文件名分类**，不要一律 immutable：
+#   · /_astro/*            内容哈希文件名（如 BaseLayout.BIbALiqL.css）→ immutable
+#   · /lab/assets/*.js|css Vite 哈希文件名（index-Dr6Kgg97.js）        → immutable
+#   · /lab/assets/*.glb    文件名**不带哈希**（archive-cassette.glb）  → 只能给中等 TTL
+#   · /fonts/*             MiSans/JetBrains Maple Mono 分包，按固定版本部署，文件名不带哈希 → 中等 TTL
+#   · /pagefind/*          检索索引，文件名不带哈希                     → 短 TTL
+#   · HTML                 必须每次回源校验
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/lab/assets/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/lab/assets/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/fonts/*
+  Cache-Control: public, max-age=2592000
+
+/pagefind/*
+  Cache-Control: public, max-age=3600
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
