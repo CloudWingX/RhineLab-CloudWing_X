@@ -41,7 +41,7 @@ import { TerminalAudio } from "./audio";
 import { audioSettingsMarkup } from "./audio-settings";
 import { paintTheme, themeSettingsMarkup, type ThemePreference } from "./theme-ui";
 import { loadBootWebfonts } from "./boot-lettering";
-import { createEntryFeature, HANDOFF_APP_TIME, type ChosenIdentity } from "./features/auth";
+// 身份门（src/features/auth/）已按 docs/FEATURES.md §4 移除，其导出不再引入。
 import { createReaderFeature, READER_ENTRY_SELECTOR } from "./features/reader";
 
 const $ = <T extends HTMLElement = HTMLElement>(selector: string) =>
@@ -126,40 +126,16 @@ const readerActive = () => readerFeature.isActive();
 /** 事件是否属于阅读层表面（弹框与其顶层）。 */
 const fromReaderSurface = (event: Event) => readerFeature.ownsEvent(event);
 
-// --- 启动身份门（功能模块：src/features/auth/）---
-// 序幕、登录/注册面板、会话端口与身份状态机都在功能模块内部；这里只保留核心侧的
-// 交接动作（开场影片时间轴、舞台 inert、场景切换），以及功能模块借用宿主能力时
-// 用到的端口实现。
-/** 身份确定后、序幕退场前静默准备第一可见帧（原创帧 169，不播放）。 */
-function prepareBootFrame(identity: ChosenIdentity, appTime: number): void {
-  bootSequence.update(appTime, identity.label);
-  const stage = document.querySelector<HTMLElement>("#stage");
-  if (stage) stage.dataset.boot = "access";
-  const caption = document.querySelector<HTMLElement>("#cinema-caption");
-  if (caption) caption.textContent = "";
-  lastStep = "access";
-}
-/** 序幕退场结束：交出舞台；需要时继续播放开场影片，否则直接进入档案。 */
-function commitBootHandoff(identity: ChosenIdentity, rafMs: number): void {
-  entryFeature.hide();
-  const stage = document.querySelector<HTMLElement>("#stage");
-  if (stage) stage.inert = false;
-  const mobile = document.querySelector<HTMLElement>(".mobile-entry");
-  if (mobile) mobile.hidden = false;
-  const requested = entryFeature.requestedScene();
-  if (!motionActive("boot") || requested === "archive" || requested === "detail") {
-    entryFeature.setPhase("entered");
-    setMode(requested === "detail" ? "detail" : "archive");
-    return;
-  }
-  entryFeature.setPhase("playing");
-  bootStart = rafMs / 1000 - HANDOFF_APP_TIME;
-  lastStep = "";
-  audio.restartBoot();
-  scene.select(0);
-  selected = 0;
-  updateSelection();
-}
+// --- 启动身份门已移除 ---
+// 上游这个模板在序幕之前加了一层「身份门 / 登录注册」功能（src/features/auth/）。
+// 本站是纯静态站、部署在 Cloudflare Pages 上，跑不了它依赖的 Go + SQLite 认证服务，
+// 因此按 docs/FEATURES.md §4 的移除流程整个摘掉。摘除后 /lab/ 直接以 GUEST 进入，
+// **不需要改动三维核心** —— 原文：「移除前端身份门后 /lab/ 会直接进入档案（GUEST 语义）」。
+//
+// 随之删掉的两个交接函数本是身份门调用的（序幕退场时把舞台交还三维应用）；
+// 无门之后由 start() 里的 GUEST 路径直接启动。
+/** 无身份门时的固定署名。正式的品牌替换在后续统一处理。 */
+const GUEST_LABEL = "CLOUDWING_X";
 
 let frozenTime =
   import.meta.env.DEV && reviewParams.get("freeze") === "1"
@@ -227,34 +203,10 @@ paintTheme(resolvedDark() ? 1 : 0);
 systemPrefersDark.addEventListener("change", () => {
   if (prefs.colorTheme === "system") savePrefs();
 });
-// 功能模块装配点：序幕在任何 await 之前创建，首帧即由它遮挡舞台（LOGIN-IMPROVE L1b）。
-// host 只暴露核心真正拥有的能力，功能模块据此工作，移除它不会牵动核心循环。
-const entryFeature = createEntryFeature({
-  viewport: $("#viewport"),
-  reducedMotion: motionIsReduced(),
-  host: {
-    prepareBootFrame,
-    commitBootHandoff,
-    setGateInert: (active) => {
-      const stage = document.querySelector<HTMLElement>("#stage");
-      if (stage) stage.inert = active;
-      const mobile = document.querySelector<HTMLElement>(".mobile-entry");
-      if (mobile) mobile.hidden = active;
-    },
-    setStageHidden: (hidden) => {
-      const stage = document.querySelector<HTMLElement>("#stage");
-      if (stage) stage.style.visibility = hidden ? "hidden" : "";
-    },
-    engageAudio: () => {
-      audio.releaseEntry();
-      void audio.unlock();
-    },
-    closeOverlays: () => readerFeature.closeForContextChange(),
-    returnToBoot: () => setMode("boot"),
-    notify: (message) => notify(message),
-  },
-});
-const identityActive = () => entryFeature.isGateActive();
+// 身份门已移除（见上方说明），这里不再有功能模块装配点。
+// identityActive() 保留为常量 false：它原表示「身份门是否正遮挡舞台」，用于在门激活时
+// 抑制某些主题/过渡；无门时恒为不激活，两处调用点（setTheme、dev 预览守卫）语义不变。
+const identityActive = () => false;
 const rollingMotion = {
   duration: 460,
   motionBlur: true,
@@ -318,7 +270,7 @@ function recordAccess() {
   accessLog.unshift({
     id: records[selected].postId,
     time: new Date().toLocaleTimeString("en-GB"),
-    label: entryFeature.label(),
+    label: GUEST_LABEL,
   });
 }
 function saveAudioPrefs() {
@@ -388,13 +340,6 @@ function fit() {
     scene?.resize();
     viewer?.resize();
   }
-  entryFeature.resize();
-  entryFeature.setStageRect({
-    left: viewport.clientWidth / 2 - (width * scale) / 2,
-    top: viewport.clientHeight / 2 - (height * scale) / 2,
-    width: width * scale,
-    height: height * scale,
-  });
   updateQualitySummary();
   // Re-measure line covers and tab underline after wrapping changes.
   requestAnimationFrame(() => {
@@ -743,7 +688,7 @@ function motionPreferenceNoteMarkup() {
   return `<div id="motion-preference-note" class="motion-preference-note"><p>${motionSummary(prefs.motion)}</p><span>预设：${preset === "full" ? "完整动画" : preset === "reduced" ? "减少动画" : "自定义"} · 选择会保存在本站</span>${allEnabled ? "" : '<button data-action="enable-motion">启用完整动画并重播 ↻</button>'}</div>`;
 }
 function settingsMarkup() {
-  return `<h2>SYSTEM SETTINGS<small>终端偏好设置</small></h2><p class="settings-intro">${entryFeature.summaryMarkup()} <span>·</span> 收藏按本设备保存</p><div class="settings-list">${themeSettingsMarkup(prefs.colorTheme)}${audioSettingsMarkup(prefs)}</div>${motionPreferenceNoteMarkup()}${motionSettingsMarkup(prefs.motion, prefs.motionPreset)}${qualityMarkup(prefs.rendering)}${pwaSettingsMarkup()}<div class="settings-shortcuts"><span>KEYBOARD CONTROLS</span><p><kbd>←</kbd><kbd>→</kbd> 切列 <kbd>↑</kbd><kbd>↓</kbd> 选档 <kbd>ENTER</kbd> 读取 <kbd>/</kbd> 检索 <kbd>ESC</kbd> 返回</p></div><div class="settings-bottom">${document.fullscreenEnabled ? '<button data-action="fullscreen">FULLSCREEN <span>↗</span></button>' : ''}<button data-action="switch-identity">切换身份 <span>⇄</span></button>${entryFeature.canLogout() ? '<button data-action="logout">退出登录 <span>⏻</span></button>' : ''}<button data-action="restart">REINITIALIZE SYSTEM <span>↻</span></button></div><div class="modal-bottom"><span>ANALYSIS OS / 1.0 · 字体 MiSans（小米，允许免费商用与网页嵌入）与 JetBrains Maple Mono（OFL-1.1） · <a href="${assetUrl("fonts/MiSans-license.pdf")}" target="_blank" rel="noopener">许可 A</a> / <a href="${assetUrl("fonts/JetBrains-Maple-Mono-OFL.txt")}" target="_blank" rel="noopener">许可 B</a></span><span>POWERED BY RHINE LAB</span></div>`;
+  return `<h2>SYSTEM SETTINGS<small>终端偏好设置</small></h2><p class="settings-intro">访客浏览 <span>·</span> 收藏按本设备保存</p><div class="settings-list">${themeSettingsMarkup(prefs.colorTheme)}${audioSettingsMarkup(prefs)}</div>${motionPreferenceNoteMarkup()}${motionSettingsMarkup(prefs.motion, prefs.motionPreset)}${qualityMarkup(prefs.rendering)}${pwaSettingsMarkup()}<div class="settings-shortcuts"><span>KEYBOARD CONTROLS</span><p><kbd>←</kbd><kbd>→</kbd> 切列 <kbd>↑</kbd><kbd>↓</kbd> 选档 <kbd>ENTER</kbd> 读取 <kbd>/</kbd> 检索 <kbd>ESC</kbd> 返回</p></div><div class="settings-bottom">${document.fullscreenEnabled ? '<button data-action="fullscreen">FULLSCREEN <span>↗</span></button>' : ''}<button data-action="restart">REINITIALIZE SYSTEM <span>↻</span></button></div><div class="modal-bottom"><span>ANALYSIS OS / 1.0 · 字体 MiSans（小米，允许免费商用与网页嵌入）与 JetBrains Maple Mono（OFL-1.1） · <a href="${assetUrl("fonts/MiSans-license.pdf")}" target="_blank" rel="noopener">许可 A</a> / <a href="${assetUrl("fonts/JetBrains-Maple-Mono-OFL.txt")}" target="_blank" rel="noopener">许可 B</a></span><span>POWERED BY RHINE LAB</span></div>`;
 }
 
 document.addEventListener("input", (e) => {
@@ -941,12 +886,6 @@ document.addEventListener("click", (e) => {
     savePrefs();
     replayBoot();
   }
-  if (action === "switch-identity") {
-    void readerFeature.withClosed(() => closeModal(() => entryFeature.switchIdentity()));
-  }
-  if (action === "logout") {
-    void readerFeature.withClosed(() => closeModal(() => void entryFeature.logout()));
-  }
   if (action === "fullscreen" && document.fullscreenEnabled) {
     if (document.fullscreenElement) void document.exitFullscreen();
     else
@@ -1062,13 +1001,13 @@ const ease = (t: number) => {  t = Math.max(0, Math.min(1, t));
   return t * t * (3 - 2 * t);
 };
 function bootFrame(t: number) {
-  audio.updateBoot(t, frozenTime !== null, entryFeature.label());
-  const motion = bootSequence.update(t, entryFeature.label());
+  audio.updateBoot(t, frozenTime !== null, GUEST_LABEL);
+  const motion = bootSequence.update(t, GUEST_LABEL);
   let step: string = motion.step;
   let caption =
     motion.step === "auth"
       ? t < 9.52
-        ? `身份信息确认：${entryFeature.label()}`
+        ? `身份信息确认：${GUEST_LABEL}`
         : t < 11.84
           ? "请求已接收"
           : "开始处理"
@@ -1124,7 +1063,7 @@ let lastTime = 0,
   fps = 0;
 function frame(ms: number) {
   if (document.hidden) { requestAnimationFrame(frame); return; }
-  entryFeature.tick(ms);
+  // 身份门的每帧推进（entryFeature.tick）随门一同移除；三维循环不受影响。
   const time = ms / 1000;
   const theme = scene?.themeAmount ?? (resolvedDark() ? 1 : 0);
   paintTheme(theme);
@@ -1168,9 +1107,8 @@ function frame(ms: number) {
 }
 async function start() {
   if (records.length === 0) {
-    entryFeature.resourcesFailed(
-      "暂无公开文章。三维档案入口需要至少一篇公开文章。请返回文章列表阅读。",
-    );
+    // 身份门移除后不再有它提供的错误态界面，这里退回普通提示。
+    notify("暂无公开文章。三维档案入口需要至少一篇公开文章。请返回文章列表阅读。");
     return;
   }
   try {
@@ -1221,10 +1159,7 @@ async function start() {
       import.meta.env.DEV &&
       (params.get("review") === "1" || params.has("time") || params.has("freeze"));
     if (devPreview) {
-      // Deterministic reference preview: bypass the identity gate entirely and
-      // keep the legacy label so existing frame checks are unchanged.
-      entryFeature.usePlaybackIdentity("JOYCE MOORE");
-      entryFeature.hideForPlayback();
+      // Deterministic reference preview: 身份门已移除，这里只需手工起 bootStart。
       audio.releaseEntry();
       bootStart = performance.now() / 1000;
       bootStart -= params.has("time") ? Number(params.get("time")) : 1.76;
@@ -1237,14 +1172,17 @@ async function start() {
       void initPwa(notify);
       return;
     }
-    // 会话恢复、身份端口与面板挂载都在功能模块内部完成。
-    await entryFeature.start(params);
+    // 身份门已移除：直接进开场（GUEST）。沿用上面 devPreview 分支验证过的启动方式 ——
+    // 手工设定 bootStart 再交给同一个 frame 循环；减少动态效果时直接进档案。
+    audio.releaseEntry();
+    bootStart = performance.now() / 1000;
+    if (!motionActive("boot")) setMode("archive");
     requestAnimationFrame(frame);
     void initPwa(notify);
   } catch (error) {
     console.error(error);
     audio.releaseEntry();
-    entryFeature.resourcesFailed("");
+    notify("三维场景加载失败，请刷新重试。");
   }
 }
 updateSelection();
@@ -1300,9 +1238,6 @@ Object.assign(window, {
       theme: Number((scene?.themeAmount ?? (resolvedDark() ? 1 : 0)).toFixed(3)),
       colorTheme: prefs.colorTheme,
       resolvedTheme: resolvedDark() ? "dark" : "light",
-      ...entryFeature.snapshot(),
-      introLogos: document.querySelectorAll("#intro-logo").length,
-      stageVisibility: getComputedStyle($("#stage")).visibility,
       reader: readerFeature.snapshot(),
       bootTime: mode === "boot" ? (frozenTime ?? performance.now() / 1000 - bootStart) + 5 : null,
       selected: records[selected].postId,
@@ -1314,8 +1249,7 @@ Object.assign(window, {
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     audio.dispose();
-    // 热更新不得留下第二份序幕/面板 DOM、第二个阅读层或其监听器与输入锁。
-    entryFeature.dispose();
+    // 热更新不得留下第二个阅读层或其监听器与输入锁。
     readerFeature.dispose();
   });
 }
