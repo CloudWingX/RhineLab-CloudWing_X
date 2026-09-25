@@ -12,6 +12,9 @@ const steps = [
   "check:features",
   "build:blog",
   "build:lab",
+  // 重定向表放在两个构建目标之后：它要读 dist 判断"旧地址是否撞上本站现有页面"，
+  // 并写入 dist/_redirects（CF Pages 认这个路径）。
+  "build:redirects",
   "search:index",
   "check:site",
 ];

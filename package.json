@@ -36,6 +36,7 @@
     "generate:lab-content": "node scripts/blog/build-lab-content.mjs",
     "build:blog": "npm run prepare:assets && npm run build --workspace @example/blog",
     "build:lab": "npm run prepare:assets && vite build --config vite.lab.config.ts",
+    "build:redirects": "node scripts/blog/build-redirects.mjs",
     "search:index": "node scripts/blog/search-index.mjs",
     "check:site": "node --experimental-strip-types scripts/blog/check-site.mjs",
     "build": "npm run generate:lab-content && node scripts/blog/build-site.mjs",
