@@ -12,8 +12,14 @@
 // 用法：node scripts/check-features.mjs [--json]
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = resolve(dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "..");
+// ★不要用 `new URL(import.meta.url).pathname`★：它保留百分号编码，仓库路径里只要有空格，
+// 就会变成 `%20` 而 ENOENT（实测：`D:\deep seek workplace\rhinelab-blog-theme` →
+// 去找 `D:\deep%20seek%20workplace\...\features.manifest.json`）。必须过 `fileURLToPath`
+// 才会解码，同时它也已经正确处理了 Windows 的盘符 —— 原来那句手写的
+// `.replace(/^\/([A-Za-z]:)/, "$1")` 就是在补这个坑，换成 fileURLToPath 后不再需要。
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const asJson = process.argv.includes("--json");
 const problems = [];
 const notes = [];
