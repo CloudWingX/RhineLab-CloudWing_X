@@ -30,3 +30,7 @@
 
 # Generated or vendored text that should keep upstream formatting.
 package-lock.json text eol=lf
+
+# Windows 批处理：cmd.exe 对纯 LF 支持很差（跨行 if 块与 goto/标签会出错）。
+# 仓库内存 LF，签出一律 CRLF。
+*.cmd text eol=crlf
