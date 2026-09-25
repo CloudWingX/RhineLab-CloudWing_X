@@ -3,13 +3,24 @@ import content from "../.generated/lab-content.json" with { type: "json" };
 // 三维档案 adapter：读取构建时生成的公开内容目录，建立 postId -> href 索引，
 // 并校验没有悬空引用。只读取公开文章摘要，不加载 Markdown 正文。
 //
-// 内容目录有两类档案：文章档案 records（进三维阵列，5 列 × 8 槽）与
-// 影像档案 albums（图集，不进阵列，只从档案索引进入详情面板）。
+// records 里混有两类档案，用 kind 区分：
+//   - kind "post"  文章档案：有 postId / href，指向博客文章（阅读层用）
+//   - kind "album" 影像档案：一条记录 = 一个图集（Minecraft / Peak / 黑暗之魂2 /
+//                  AI生成 / 壁纸），没有文章，但带 images[] 供 album-viewer 使用
+// 两类都**进三维阵列**：阵列的列由 columns 决定，records 按 category 分列，
+// 因此「游戏影像 / 影像图集」就是阵列里真实存在的两列，会被 ↑↓←→ 走到。
 
-export interface LabSlot {
+/** 影像档案（图集）里的一张影像。 */
+export interface AlbumImage {
+  src: string;
+  title: string;
+  date: string;
+  aspect: string;
+}
+
+interface SlotBase {
   id: string;
   displayNumber: number;
-  postId: string;
   title: string;
   en: string;
   department: string;
@@ -20,32 +31,25 @@ export interface LabSlot {
   abstract: string;
   findings: string[];
   source: string;
+}
+
+/** 文章档案：指向一篇博客文章。 */
+export interface LabPostSlot extends SlotBase {
+  kind: "post";
+  postId: string;
   href: string;
 }
 
-/** 影像档案（图集）里的一张影像。 */
-export interface AlbumImage {
-  src: string;
-  title: string;
-  date: string;
-  aspect: string;
-}
-
 /**
- * 影像档案：一条记录对应一个**图集**（Minecraft / Peak / 黑暗之魂2 / AI生成 / 壁纸）。
+ * 影像档案：一条记录对应一个图集。
  *
- * 与 LabSlot 的区别：影像档案**不进三维阵列**——没有槽位、不参与 columns 归属，
- * 因此没有 postId / href，也不产生第二份内容。所属"大类"
- * （`游戏影像` / `影像图集`）记在 category 上，只用于索引筛选与详情面板展示。
+ * 它没有文章，所以 postId / href 是空串——保留这两个字段（而不是省略）是为了让
+ * 消费方（详情面板、阅读层宿主端口）不必到处写分支；空串在 those 处会被 kind 判断挡掉。
  */
-export interface LabAlbum {
-  id: string;
+export interface LabAlbumSlot extends SlotBase {
   kind: "album";
-  displayNumber: number;
-  title: string;
-  en: string;
-  department: string;
-  category: string;
+  postId: "";
+  href: "";
   count: number;
   dateFrom: string;
   dateTo: string;
@@ -53,25 +57,70 @@ export interface LabAlbum {
   images: AlbumImage[];
 }
 
+export type LabSlot = LabPostSlot | LabAlbumSlot;
+
 export interface LabContent {
   generatedAt: string;
   site: string;
   columns: string[];
   categories: string[];
   records: LabSlot[];
-  albums: LabAlbum[];
 }
 
 const lab = content as LabContent;
 
 const problems: string[] = [];
-if (!Array.isArray(lab.columns) || lab.columns.length !== 5) {
-  problems.push("columns 必须是 5 个策展主题");
+if (!Array.isArray(lab.columns) || lab.columns.length === 0) {
+  problems.push("columns 必须是非空数组");
 }
+if (!Array.isArray(lab.categories)) problems.push("categories 必须是数组");
 if (!Array.isArray(lab.records)) problems.push("records 必须是数组");
 
+// 每一列都必须至少有一条档案：空列会让阵列里出现一条永远空着的泳道。
+const usedCategories = new Set(lab.records.map((record) => record.category));
+for (const column of lab.columns) {
+  if (!usedCategories.has(column)) problems.push(`列「${column}」没有任何档案`);
+}
+
 const hrefByPostId = new Map<string, string>();
+const seenIds = new Set<string>();
 for (const record of lab.records) {
+  if (!record.id || seenIds.has(record.id)) {
+    problems.push(`档案 id 缺失或重复：${record.id}`);
+  }
+  seenIds.add(record.id);
+
+  if (!record.category) {
+    problems.push(`档案 ${record.id} 缺少 category`);
+  } else if (!lab.columns.includes(record.category)) {
+    problems.push(`档案 ${record.id} 的 category「${record.category}」不在 columns 里`);
+  }
+
+  // kind 来自 JSON，运行时按未知值校验一次，避免坏数据静默走错分支。
+  const kind = (record as { kind?: unknown }).kind;
+  if (kind !== "post" && kind !== "album") {
+    problems.push(`档案 ${record.id} 的 kind 非法：${String(kind)}`);
+    continue;
+  }
+
+  if (record.kind === "album") {
+    if (!Array.isArray(record.images) || record.images.length === 0) {
+      problems.push(`影像档案 ${record.id} 没有任何影像`);
+      continue;
+    }
+    if (record.images.length !== record.count) {
+      problems.push(
+        `影像档案 ${record.id} 的 count=${record.count} 与 images=${record.images.length} 不符`,
+      );
+    }
+    for (const image of record.images) {
+      if (!image.src || !image.src.startsWith("/")) {
+        problems.push(`影像档案 ${record.id} 的影像 src 必须是站内绝对路径：${image.src}`);
+      }
+    }
+    continue;
+  }
+
   if (!record.postId || !record.href) {
     problems.push(`槽位 ${record.id} 缺少 postId 或 href`);
     continue;
@@ -85,46 +134,18 @@ for (const record of lab.records) {
   }
   hrefByPostId.set(record.postId, record.href);
 }
-// 影像档案：不进三维阵列，所以单独校验——不要求 postId/href，但要求 id 唯一、
-// 归入某个大类、images 非空且与 count 一致、每个 src 是站内绝对路径。
-const albumCategorySet = new Set<string>();
-const seenAlbumIds = new Set<string>();
-if (!Array.isArray(lab.albums)) {
-  problems.push("albums 必须是数组");
-} else {
-  for (const album of lab.albums) {
-    if (!album.id || seenAlbumIds.has(album.id)) {
-      problems.push(`影像档案 id 缺失或重复：${album.id}`);
-    }
-    seenAlbumIds.add(album.id);
-    if (!album.category) problems.push(`影像档案 ${album.id} 缺少 category`);
-    else albumCategorySet.add(album.category);
-    if (!Array.isArray(album.images) || album.images.length === 0) {
-      problems.push(`影像档案 ${album.id} 没有任何影像`);
-      continue;
-    }
-    if (album.images.length !== album.count) {
-      problems.push(
-        `影像档案 ${album.id} 的 count=${album.count} 与 images=${album.images.length} 不符`,
-      );
-    }
-    for (const image of album.images) {
-      if (!image.src || !image.src.startsWith("/")) {
-        problems.push(`影像档案 ${album.id} 的影像 src 必须是站内绝对路径：${image.src}`);
-      }
-    }
-  }
-  if (albumCategorySet.size === 0) problems.push("影像档案没有任何大类");
-}
 
 if (problems.length) {
   throw new Error(`lab 内容校验失败：\n- ${problems.join("\n- ")}`);
 }
 
 export const labContent = lab;
-export const hasPosts = lab.records.length > 0;
-export const albums = lab.albums;
-export const albumCategories = [...albumCategorySet];
+export const hasPosts = lab.records.some((record) => record.kind === "post");
+export const albums = lab.records.filter(
+  (record): record is LabAlbumSlot => record.kind === "album",
+);
+/** 影像大类，按 records 里首次出现的顺序（即 gallery.json 的声明顺序）。 */
+export const albumCategories = [...new Set(albums.map((album) => album.category))];
 export function hrefForPost(postId: string): string | null {
   return hrefByPostId.get(postId) ?? null;
 }

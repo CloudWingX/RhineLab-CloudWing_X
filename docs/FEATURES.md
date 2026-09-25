@@ -91,8 +91,8 @@
 - **门面** `AlbumViewerFeature`：`isActive`、`ownsEvent`、`open`、`closeIfActive`、
   `withClosed`、`snapshot`、`dispose`。
 - **数据来源**：`content/gallery.json` → `scripts/blog/build-lab-content.mjs` 生成
-  `.generated/lab-content.json` 的 `albums`（与文章档案的 `records` 分开；**影像档案不进三维
-  阵列**，因此不改 `scene.ts`，详情面板也不让相机进 detail 取景）。
+  `.generated/lab-content.json` 的 `records`（`kind: "album"`，与文章档案**同一个数组**）与 `columns`。
+  影像档案因此**就是三维阵列里的两列**（游戏影像 / 影像图集），列数由数据推导，代码不写死。
 - **检查**：`check:features`（本模块暂无专属检查脚本）。
 - **行为说明**：[ALBUM.md](ALBUM.md)。
 

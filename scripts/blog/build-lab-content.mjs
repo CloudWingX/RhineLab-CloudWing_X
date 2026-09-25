@@ -72,6 +72,7 @@ if (collections) {
       records.push({
         id: `X-${String(displayNumber).padStart(3, "0")}`,
         displayNumber,
+        kind: "post",
         postId: post.id,
         title: post.title,
         en: post.title,
@@ -91,12 +92,15 @@ if (collections) {
 
 // ── 图像档案（图集）──────────────────────────────────────────────────────
 // content/gallery.json 与 lab-collections.json 同级，都是"内容侧唯一数据源"。
-// 这里把它转成档案系统的影像档案记录。影像档案**不进三维阵列**（columns 仍是
-// 5 个策展主题），所以单独放 albums 数组，不与 records 混在一起。
+// 这里把它转成档案记录，并**并入同一个 records 数组**：三维阵列按 category 分列
+// （见 data.ts 的 fileLocation），所以「游戏影像 / 影像图集」会成为阵列里真实存在的
+// 两列，能用 ↑↓←→ 走到、能打开档案详情——而不是藏在检索弹框的第 8 个筛选项里。
 const galleryFile = resolve(root, "content/gallery.json");
 const blogPublicDir = resolve(root, "apps/blog/public");
 
-const albums = [];
+/** 影像大类，按 gallery.json 的声明顺序；追加到 columns 后面成为阵列的第 6、7 列。 */
+const albumCategories = [];
+let albumImageTotal = 0;
 let gallery = null;
 try {
   gallery = JSON.parse(await readFile(galleryFile, "utf8"));
@@ -135,14 +139,13 @@ if (gallery) {
     errors.push(`content/gallery.json：大类里声明了没有影像的图集：${phantom.join("、")}`);
   }
 
-  let albumNumber = 0;
   for (const category of categories) {
+    if (!albumCategories.includes(category.name)) albumCategories.push(category.name);
     for (const album of category.albums ?? []) {
       const albumItems = items
         .filter((item) => item.game === album)
         .sort((a, b) => String(a.date).localeCompare(String(b.date)));
       if (!albumItems.length) continue; // 空图集已在上面报错
-      albumNumber += 1;
 
       // 每条影像的素材必须真实存在——缺素材时构建失败，而不是发出坏图。
       for (const item of albumItems) {
@@ -156,17 +159,30 @@ if (gallery) {
       }
 
       const dates = albumItems.map((item) => String(item.date)).filter(Boolean).sort();
-      albums.push({
-        id: `AL-${String(albumNumber).padStart(3, "0")}`,
+      const dateFrom = dates[0] ?? "";
+      const dateTo = dates.at(-1) ?? "";
+      displayNumber += 1;
+      albumImageTotal += albumItems.length;
+      records.push({
+        id: `X-${String(displayNumber).padStart(3, "0")}`,
+        displayNumber,
         kind: "album",
-        displayNumber: albumNumber,
+        // 影像档案没有文章：postId / href 留空，由 adapter 按 kind 分别校验。
+        postId: "",
+        href: "",
         title: album,
         en: album,
         department: category.name,
         category: category.name,
+        date: dateTo,
+        lead: "IMAGE ARCHIVE",
+        clearance: "PUBLIC",
+        abstract: `${album} 图集，属「${category.name}」，共 ${albumItems.length} 张影像，时间跨度 ${dateFrom} 至 ${dateTo}。`,
+        findings: [],
+        source: "",
         count: albumItems.length,
-        dateFrom: dates[0] ?? "",
-        dateTo: dates.at(-1) ?? "",
+        dateFrom,
+        dateTo,
         cover: albumItems.at(-1)?.image ?? "",
         // 展示顺序取时间倒序（新的在前）
         images: [...albumItems].reverse().map((item) => ({
@@ -179,10 +195,9 @@ if (gallery) {
     }
   }
 
-  const counted = albums.reduce((sum, album) => sum + album.count, 0);
-  if (counted !== items.length) {
+  if (albumImageTotal !== items.length) {
     errors.push(
-      `content/gallery.json：图集张数合计 ${counted}，但 items 有 ${items.length} 条`,
+      `content/gallery.json：图集张数合计 ${albumImageTotal}，但 items 有 ${items.length} 条`,
     );
   }
 }
@@ -192,6 +207,10 @@ if (errors.length) {
   process.exit(1);
 }
 
+// 阵列的列 = 5 个文章主题 + 影像大类。两者共用 data.ts 的 fileLocation 分列逻辑，
+// 所以影像大类就是阵列里真实的两列——顺序完全由数据决定，代码里不写死列数。
+const columns = [...collections.themes.map((theme) => theme.name), ...albumCategories];
+
 await mkdir(resolve(root, ".generated"), { recursive: true });
 await writeFile(
   outFile,
@@ -199,10 +218,9 @@ await writeFile(
     {
       generatedAt: now.toISOString(),
       site: SITE,
-      columns: collections.themes.map((theme) => theme.name),
-      categories: collections.themes.map((theme) => theme.name),
+      columns,
+      categories: columns,
       records,
-      albums,
     },
     null,
     2,
@@ -210,9 +228,10 @@ await writeFile(
   "utf8",
 );
 
+const postRecords = records.filter((r) => r.kind === "post");
+const albumRecords = records.filter((r) => r.kind === "album");
 console.log(
-  `三维内容生成：${records.length} 个槽位（${collections.themes.length} 主题 × ${SLOTS_PER_THEME}），` +
-    `引用 ${new Set(records.map((r) => r.postId)).size} 篇公开文章；` +
-    `影像档案 ${albums.length} 个（${albums.reduce((sum, album) => sum + album.count, 0)} 张，` +
-    `${new Set(albums.map((a) => a.category)).size} 个大类）。`,
+  `三维内容生成：${columns.length} 列（${collections.themes.length} 文章主题 + ${albumCategories.length} 影像大类）；` +
+    `档案 ${records.length} 条 —— 文章 ${postRecords.length} 条（引用 ${new Set(postRecords.map((r) => r.postId)).size} 篇公开文章）、` +
+    `影像 ${albumRecords.length} 个图集（${albumImageTotal} 张）。`,
 );

@@ -27,6 +27,8 @@ import {
   visibleCell,
   LOOP_COLUMNS,
   LOOP_ROWS,
+  CONTENT_COLUMNS,
+  LANE_CENTER,
   COLUMN_SPACING,
   ROW_SPACING,
   type ArchiveCell,
@@ -586,7 +588,7 @@ export class ArchiveScene {
   }
   private cellPosition(cell: ArchiveCell) {
     return new THREE.Vector3(
-      (cell.lane - 2) * COLUMN_SPACING,
+      (cell.lane - LANE_CENTER) * COLUMN_SPACING,
       -4.6,
       (cell.row - 15.5) * ROW_SPACING,
     );
@@ -597,7 +599,8 @@ export class ArchiveScene {
     const shift = {
       lane:
         Math.abs(this.selectedCell.lane) > 2048
-          ? Math.round((this.selectedCell.lane - 2) / 5) * 5
+          ? Math.round((this.selectedCell.lane - LANE_CENTER) / CONTENT_COLUMNS) *
+            CONTENT_COLUMNS
           : 0,
       row:
         Math.abs(this.selectedCell.row) > 2048
@@ -809,7 +812,7 @@ export class ArchiveScene {
   }
   private trackCoordinate(axis: DragAxis, value: number) {
     return axis === "lane"
-      ? value / COLUMN_SPACING + 2
+      ? value / COLUMN_SPACING + LANE_CENTER
       : (-value - 2.17) / ROW_SPACING + 15.5;
   }
   private dragProjection(): DragProjection {
@@ -839,7 +842,7 @@ export class ArchiveScene {
   }
   private trackPosition(axis: DragAxis, coordinate: number) {
     return axis === "lane"
-      ? (coordinate - 2) * COLUMN_SPACING
+      ? (coordinate - LANE_CENTER) * COLUMN_SPACING
       : -2.17 - (coordinate - 15.5) * ROW_SPACING;
   }
   private navigatePlane(coordinate: DragPosition) {
@@ -1170,7 +1173,7 @@ export class ArchiveScene {
     // movement of the whole array, just like the existing front/back rail.
     const trackX = cinematic ? 0 : this.columnCamera.value;
     const center = {
-      lane: this.columnCamera.value / COLUMN_SPACING + 2,
+      lane: this.columnCamera.value / COLUMN_SPACING + LANE_CENTER,
       row: (-this.rail.value - 2.17) / ROW_SPACING + 15.5,
     };
     for (let i = 0; i < this.positions.length; i++) {

@@ -33,7 +33,6 @@ import { wrap, type ArchiveNavigation } from "./archive-loop";
 import {
   records,
   albums,
-  albumCategories,
   categories,
   archiveColumns,
   columnFiles,
@@ -78,7 +77,7 @@ $("#stage").innerHTML = `
     <div id="hover-label" class="hover-label" hidden>X-<span id="hover-code">001</span> / <span id="hover-title"></span></div>
     <div class="archive-counter"><span class="tiny-label">ARCHIVE / SELECT</span><div><span id="selected-number">01</span><i>/</i><span class="count-total">12</span></div></div>
     <div class="archive-navigation"><button data-action="prev" aria-label="上一个档案">↑</button><div id="file-ticks" class="file-ticks"></div><button data-action="next" aria-label="下一个档案">↓</button></div>
-    <div class="column-navigation"><button data-action="column-prev" aria-label="上一列">←</button><div><span id="column-number">COLUMN <span id="column-index">03</span> / 05</span><strong id="column-name">学习</strong></div><button data-action="column-next" aria-label="下一列">→</button></div>
+    <div class="column-navigation"><button data-action="column-prev" aria-label="上一列">←</button><div><span id="column-number">COLUMN <span id="column-index">03</span> / <span id="column-total">00</span></span><strong id="column-name">学习</strong></div><button data-action="column-next" aria-label="下一列">→</button></div>
     <div class="archive-hint"><kbd>←</kbd> <kbd>→</kbd> 切换列 <span>／</span> <kbd>↑</kbd> <kbd>↓</kbd> 前后档案 <span>／</span> <kbd>ENTER</kbd> 读取</div>
   </section>
   <section id="detail-ui" class="detail-ui" aria-label="档案内容" hidden>
@@ -108,9 +107,6 @@ let modal: "search" | "saved" | "settings" | null = null,
   searchQuery = "",
   filter = "全部档案";
 let activeTab = "overview";
-// 详情面板当前显示的是哪一种档案：文章档案（records[selected]）还是影像档案（图集）。
-// 影像档案在三维阵列里没有对应物体，所以不能只靠 selected 推断，必须单独记住。
-let albumDetail: ArchiveAlbum | null = null;
 const reviewParams = new URLSearchParams(location.search);
 
 // --- immersive reader（功能模块：src/features/reader/）---
@@ -120,7 +116,9 @@ const reviewParams = new URLSearchParams(location.search);
 const readerFeature = createReaderFeature({
   currentTarget: () => {
     const record = records[selected];
-    return record ? { postId: record.postId, href: record.href, title: record.title } : null;
+    // 影像档案没有文章：阅读层据此拒绝打开（图集由 album-viewer 呈现）。
+    if (!record || record.kind !== "post") return null;
+    return { postId: record.postId, href: record.href, title: record.title };
   },
   isArchiveReady: () => ready,
   isIdentityGateActive: () => identityActive(),
@@ -376,14 +374,25 @@ window.visualViewport?.addEventListener("resize", fit);
 window.visualViewport?.addEventListener("scroll", fit);
 matchMedia("(pointer: coarse)").addEventListener("change", fit);
 fit();
-$("#file-ticks").innerHTML = columnFiles(fileLocation(selected).lane)
-  .map(
-    (index) => `<button data-select="${index}"></button>`,
-  )
-  .join("");
-const fileTicks = [...$("#file-ticks").querySelectorAll<HTMLButtonElement>("button")];
+// 列总数由数据决定（5 篇文章主题 + 影像大类），模板里不再写死。
+$("#column-total").textContent = String(archiveColumns.length).padStart(2, "0");
+// 刻度条按"当前列"重建：各列的档案数并不相同（文章主题 8 个，影像大类只有 3 / 2 个），
+// 复用启动时按第 0 列建的那一组会越界（records[undefined].id → TypeError）。
+let fileTicks: HTMLButtonElement[] = [];
+let tickLane = -1;
+/** 换列时重建刻度条；同一个 lane 不重建，避免行导航时反复销毁重建 DOM。 */
+function ensureFileTicks(lane: number, files: number[]) {
+  if (lane === tickLane) return;
+  tickLane = lane;
+  $("#file-ticks").innerHTML = files
+    .map((index) => `<button data-select="${index}"></button>`)
+    .join("");
+  fileTicks = [...$("#file-ticks").querySelectorAll<HTMLButtonElement>("button")];
+}
+// 启动时先按当前列建一次，保持与改造前一致的初始视图。
+ensureFileTicks(fileLocation(selected).lane, columnFiles(fileLocation(selected).lane));
 
-function setMode(next: Mode, sceneMode?: "hidden" | "archive" | "detail") {
+function setMode(next: Mode) {
   const previousMode = mode;
   rollingTitles.forEach(title => title.update({ animated: motionActive("rollingText") && next === "archive" }));
   if (next !== "archive") {
@@ -416,9 +425,7 @@ function setMode(next: Mode, sceneMode?: "hidden" | "archive" | "detail") {
     if (!modal && next === "archive") $(".read-file").focus({ preventScroll: true });
   }
   $("#detail-ui").inert = next !== "detail" || Boolean(modal);
-  // sceneMode 让"详情面板"与"三维取景"解耦：影像档案（图集）在三维里没有对应物体，
-  // 若照旧让场景进 detail，相机会聚焦到上一个被选中的文章卡片，背景露出不相关的物体。
-  scene?.setMode(sceneMode ?? (next === "boot" ? "hidden" : next));
+  scene?.setMode(next === "boot" ? "hidden" : next);
   if (next !== "boot") {
     bootSequence.reset();
     $(".file-title").firstChild!.textContent = "FILE NUMBER: ";
@@ -435,8 +442,6 @@ function setMode(next: Mode, sceneMode?: "hidden" | "archive" | "detail") {
 function select(index: number, navigation?: ArchiveNavigation) {
   // A selection change closes the reader without restoring focus to its opener.
   readerFeature.closeIfActive();
-  // 三维阵列里的选择一定是文章档案：把详情目标切回文章，避免面板还停在图集上。
-  albumDetail = null;
   selected = (index + records.length) % records.length;
   columnMemory[fileLocation(selected).lane] = selected;
   if (mode === "detail") setMode("archive");
@@ -497,8 +502,12 @@ function updateSelection(navigation?: ArchiveNavigation) {
   columnTitle.update({ text: archiveColumns[lane], animated: motionActive("rollingText") && mode === "archive" });
   $<HTMLButtonElement>('[data-action="column-prev"]').disabled = false;
   $<HTMLButtonElement>('[data-action="column-next"]').disabled = false;
+  ensureFileTicks(lane, files);
   fileTicks.forEach((button, slot) => {
-    const index = files[slot], record = records[index];
+    const index = files[slot];
+    // 防御：万一刻度条与当前列的档案数不一致，也不要把 undefined 当档案用。
+    if (index === undefined) return;
+    const record = records[index];
     button.dataset.select = String(index);
     button.setAttribute("aria-label", `选择档案 ${record.id} ${record.title}`);
     button.title = `${record.id} · ${record.title}`;
@@ -554,12 +563,12 @@ function toggleSaved() {
 }
 function renderDetail() {
   tabTransition.cancel();
-  // 影像档案（图集）走另一套模板：它没有文章的三页签，也没有绑在三维物体上的标题。
-  if (albumDetail) {
-    renderAlbumDetail(albumDetail);
+  const r = records[selected];
+  // 影像档案（图集）走另一套模板：它没有文章的三页签，也没有可检视的文档模型。
+  if (r.kind === "album") {
+    renderAlbumDetail(r);
     return;
   }
-  const r = records[selected];
   // 从图集切回文章档案时，把详情页上那块"三维物体"说明恢复出来。
   $(".object-caption").hidden = false;
   $("#object-id").textContent = "NO." + String(selected + 1).padStart(3, "0");
@@ -580,10 +589,11 @@ function renderDetail() {
 /**
  * 影像档案的详情。一条记录 = 一个图集：元数据换成图集信息（大类 / 收录张数 / 时间跨度），
  * 操作区把「阅读全文」换成「查看详情」——点开后交给 features/album-viewer 接管。
+ *
+ * 图集同样是阵列里的一张卡片（有自己的槽位），但它是影像合集而不是文档，
+ * 没有可检视的"文档模型"，所以隐藏 object-caption 那块（DRAG TO INSPECT / 360° 查看文档模型）。
  */
 function renderAlbumDetail(album: ArchiveAlbum) {
-  // 图集在三维里没有物体：隐藏"DRAG TO INSPECT / 360° 查看文档模型"那一块，
-  // 否则它指向的是上一个被选中的文章卡片。
   $(".object-caption").hidden = true;
   $("#object-id").textContent = "NO." + String(album.displayNumber).padStart(3, "0");
   $("#detail-content").innerHTML = `
@@ -593,25 +603,9 @@ function renderAlbumDetail(album: ArchiveAlbum) {
   <dl class="metadata"><div><dt>CATEGORY / 大类</dt><dd>${escapeHtml(album.category)}</dd></div><div><dt>VOLUME / 收录</dt><dd>${album.count} 张影像</dd></div><div><dt>PERIOD / 时间跨度</dt><dd>${escapeHtml(album.dateFrom)} → ${escapeHtml(album.dateTo)}</dd></div><div><dt>STATUS / 状态</dt><dd><i></i>已归档 · 可读取</dd></div></dl>
   <div class="panel-label">ABSTRACT / 摘要</div><p>${escapeHtml(album.title)} 图集，属「${escapeHtml(album.category)}」，共 ${album.count} 张影像，时间跨度 ${escapeHtml(album.dateFrom)} 至 ${escapeHtml(album.dateTo)}。</p>
   <div class="detail-actions"><button class="solid-button" data-action="open-album-viewer">VIEW IMAGES<span>查看详情</span></button></div>
-  <div class="detail-footnote"><span>ALBUM ${String(album.displayNumber).padStart(3, "0")} / ${String(albums.length).padStart(3, "0")}</span><span>${album.count} IMAGES</span></div>`;
+  <div class="detail-footnote"><span>ALBUM ${String(albums.indexOf(album) + 1).padStart(3, "0")} / ${String(albums.length).padStart(3, "0")}</span><span>${album.count} IMAGES</span></div>`;
   $("#detail-content").setAttribute("tabindex", "-1");
   documentDecryption.reset($("#detail-content"), !motionActive("documentReveal") || scene.decryptionFrame.phase === "clear");
-}
-
-/**
- * 打开影像档案（图集）的档案记录。
- *
- * 与文章档案的区别：图集在三维阵列里没有对应物体，所以**不让三维相机进 detail 取景**
- * （否则相机会聚焦到上一个被选中的文章卡片，背景露出不相关的物体）。面板复用同一层
- * `#detail-ui`，背景停在档案阵列。
- */
-function openAlbumDetail(album: ArchiveAlbum) {
-  readerFeature.closeIfActive();
-  albumDetail = album;
-  closeModal(() => {
-    setMode("detail", "archive");
-    audio.play("open");
-  });
 }
 
 function overview() {
@@ -727,40 +721,34 @@ function renderModal() {
 }
 function renderResults() {
   const query = searchQuery.toLowerCase();
-  const postHits = records
+  // 文章档案与影像档案同处 records，检索与大类筛选对两者一视同仁。
+  // 「收藏」只收文章（影像档案没有 postId），所以 saved 模式把它们排除在外。
+  const hits = records
     .map((r, i) => ({ r, i }))
     .filter(
       ({ r }) =>
-        (modal !== "saved" || saved.has(r.id)) &&
+        (modal !== "saved" || (r.kind === "post" && saved.has(r.postId))) &&
         (filter === "全部档案" || r.category === filter) &&
         `${r.id} ${r.title} ${r.en} ${r.department} ${r.lead}`
           .toLowerCase()
           .includes(query),
     );
-  // 影像档案（图集）同样进检索与大类筛选。它们没有 postId，因此不出现在「收藏」里。
-  const albumHits =
-    modal === "saved"
-      ? []
-      : albums.filter(
-          (a) =>
-            (filter === "全部档案" || a.category === filter) &&
-            `${a.id} ${a.title} ${a.en} ${a.category}`.toLowerCase().includes(query),
-        );
-  const rows = [
-    ...postHits.map(
-      ({ r, i }) =>
-        `<button class="result-row" data-result="${i}"><span class="result-name"><b>${r.id}</b><span>${escapeHtml(r.title)}<small>${escapeHtml(r.en)}</small></span>${saved.has(r.postId) ? "<i>＋</i>" : ""}</span><span>${escapeHtml(r.department)}</span><span>${r.clearance === "RESTRICTED" ? "CATALOG ONLY" : "AUTHORIZED"} <i>↗</i></span></button>`,
-    ),
-    ...albumHits.map(
-      (a) =>
-        `<button class="result-row" data-album="${escapeHtml(a.id)}"><span class="result-name"><b>${escapeHtml(a.id)}</b><span>${escapeHtml(a.title)}<small>${escapeHtml(a.category)}</small></span></span><span>${escapeHtml(a.category)}</span><span>${a.count} IMAGES <i>↗</i></span></button>`,
-    ),
-  ];
-  $("#search-results").innerHTML = rows.length
-    ? rows.join("")
+  $("#search-results").innerHTML = hits.length
+    ? hits
+        .map(({ r, i }) => {
+          const access =
+            r.kind === "album"
+              ? `${r.count} IMAGES`
+              : r.clearance === "RESTRICTED"
+                ? "CATALOG ONLY"
+                : "AUTHORIZED";
+          const mark = r.kind === "post" && saved.has(r.postId) ? "<i>＋</i>" : "";
+          return `<button class="result-row" data-result="${i}"><span class="result-name"><b>${r.id}</b><span>${escapeHtml(r.title)}<small>${escapeHtml(r.en)}</small></span>${mark}</span><span>${escapeHtml(r.department)}</span><span>${access} <i>↗</i></span></button>`;
+        })
+        .join("")
     : `<div class="empty-results"><span>∅</span><strong>${modal === "saved" && !searchQuery ? "尚无收藏档案" : "没有匹配的档案"}</strong><p>${modal === "saved" && !searchQuery ? "读取档案时，选择 SAVE ARCHIVE 将其保存在此处。" : "尝试其他名称、档案编号，或切换科室分类。"}</p><button data-action="reset-search">${modal === "saved" ? "查看全部档案 →" : "重置检索 →"}</button></div>`;
   $("#result-count").textContent =
-    `${String(rows.length).padStart(2, "0")} RECORDS FOUND`;
+    `${String(hits.length).padStart(2, "0")} RECORDS FOUND`;
 }
 function updateQualitySummary() {
   const summary = document.querySelector("#quality-summary");
@@ -902,11 +890,6 @@ document.addEventListener("click", (e) => {
     );
     return;
   }
-  if (el.dataset.album) {
-    const album = albums.find((a) => a.id === el.dataset.album);
-    if (album) void readerFeature.withClosed(() => openAlbumDetail(album));
-    return;
-  }
   if (el.dataset.filter) {
     filter = el.dataset.filter;
     document
@@ -957,10 +940,12 @@ document.addEventListener("click", (e) => {
     setMode("archive");
     audio.play("back");
   }
-  if (action === "open-album-viewer" && mode === "detail" && albumDetail) {
+  if (action === "open-album-viewer" && mode === "detail") {
+    const record = records[selected];
+    if (!record || record.kind !== "album") return;
     // Safari 不一定在点击时给按钮焦点；显式捕获入口，关闭时才能可靠归还焦点。
     el.focus({ preventScroll: true });
-    albumViewerFeature.open(albumDetail, el, !motionActive("viewerNavigation"));
+    albumViewerFeature.open(record, el, !motionActive("viewerNavigation"));
   }
   if (action === "search" || action === "saved" || action === "settings") {
     el.focus({ preventScroll: true });
