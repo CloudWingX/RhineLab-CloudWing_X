@@ -27,6 +27,7 @@ import {
   visibleCell,
   LOOP_COLUMNS,
   LOOP_ROWS,
+  REFERENCE_COLUMNS,
   CONTENT_COLUMNS,
   LANE_CENTER,
   COLUMN_SPACING,
@@ -1179,8 +1180,11 @@ export class ArchiveScene {
     for (let i = 0; i < this.positions.length; i++) {
       this.cells[i] =
         cinematic || !this.looping ? poolCell(i) : visibleCell(i, center);
+      // ★原点必须读 LANE_CENTER★：这里曾写死 `- 2`（参考 5 列时的中心），
+      // 而 cellPosition / trackPosition / center.lane 读 LANE_CENTER ——
+      // 两者一旦不等，阵列实例与抽出的模型就整体错位（内容列改 8 列时错位 1.5 列）。
       this.positions[i].set(
-        (this.cells[i].lane - 2) * COLUMN_SPACING,
+        (this.cells[i].lane - LANE_CENTER) * COLUMN_SPACING,
         -4.6,
         (this.cells[i].row - 15.5) * ROW_SPACING,
       );
@@ -1369,7 +1373,9 @@ export class ArchiveScene {
       this.dummy.rotation.set(slope * 0.024 * (1 - detail), 0, 0);
       this.dummy.scale.setScalar(
         hidden.has(cellKey(this.cells[i])) ||
-          ((cinematic || !this.looping) && i >= 160)
+          // 参考时间轴只保留参考阵列那几列（前 REFERENCE_COLUMNS × LOOP_ROWS 个实例），
+          // 本站多出来的内容列在开场段隐藏 —— 与模板的"额外列隐藏"一致。
+          ((cinematic || !this.looping) && i >= REFERENCE_COLUMNS * LOOP_ROWS)
           ? 0
           : 1,
       );

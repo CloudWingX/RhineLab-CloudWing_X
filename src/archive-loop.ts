@@ -4,7 +4,7 @@ export type ArchiveCell = { lane: number; row: number };
 export type ArchiveNavigation =
   { axis: "row" | "lane"; direction: number } | { cell: ArchiveCell };
 
-/** 阵列的内容列数（= lab-content.json 的 columns：文章主题 + 影像大类）。 */
+/** 阵列的内容列数（= lab-content.json 的 columns：文章主题 + 影像大类 + 音乐）。 */
 export const CONTENT_COLUMNS = archiveColumns.length;
 /**
  * 轮播泳道数 = 内容列 + 两侧各 2 条镜像列。
@@ -12,8 +12,18 @@ export const CONTENT_COLUMNS = archiveColumns.length;
  * 可视区两侧无缝衔接（5 列时 = 9，与改造前的写死值一致）。
  */
 export const LOOP_COLUMNS = CONTENT_COLUMNS + 4;
-/** 内容列在泳道坐标里的中心：相机居中与拖拽换算都用它（5 列时 = 2）。 */
-export const LANE_CENTER = (CONTENT_COLUMNS - 1) / 2;
+/**
+ * 参考阵列（原片参考动画）的内容列数：**恒为 5**。
+ *
+ * 泳道坐标的原点以参考阵列的几何中心为准，而不是以本站内容列数为准 ——
+ * 本站内容列多到 8 列（5 文章主题 + 2 影像大类 + 音乐），但开场镜位、阵列构图
+ * 与"抽出的模型落在哪个槽位"全部锚定在这 5 列上（`scene.ts` 的 `cinematic` 分支
+ * 只显示前 `REFERENCE_COLUMNS * LOOP_ROWS` 个实例，正好是参考的那 5 列）。
+ * 原点一旦跟着内容列数走，阵列就会与抽出的模型错位（实测错位 1.5 列 ≈ 7.8 世界单位）。
+ */
+export const REFERENCE_COLUMNS = 5;
+/** 泳道坐标原点 = 参考阵列的几何中心：相机居中、拖拽换算与实例排布都用它（参考 5 列时 = 2）。 */
+export const LANE_CENTER = (REFERENCE_COLUMNS - 1) / 2;
 export const LOOP_ROWS = 32;
 export const COLUMN_SPACING = 5.2;
 export const ROW_SPACING = 0.62;
