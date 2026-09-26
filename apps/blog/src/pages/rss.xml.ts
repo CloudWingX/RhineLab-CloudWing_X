@@ -4,7 +4,7 @@ import { getPublishedPosts } from "../lib/content";
 
 export const GET: APIRoute = async (context) => {
   const posts = await getPublishedPosts();
-  const site = context.site ?? new URL("https://blog.cloudwing.top");
+  const site = context.site ?? new URL("https://www.cloudwing.top");
   return rss({
     title: "云翼",
     description: "用 Markdown 写作、Git 发布的个人博客。",

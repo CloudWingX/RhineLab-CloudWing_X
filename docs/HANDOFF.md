@@ -136,7 +136,9 @@ git push -u origin migration/cloudwing
 
 **顺带对齐**：`build-lab-content.mjs` 的 origin 默认值原本是 `example.com`，而站点与
 `astro.config.mjs` 的默认是站点 origin —— 导出的 TXT 里"原文链接"因此指向 example.com，已改齐。
-  （2026-09-26 末：站点定在子域 `blog.cloudwing.top`，四处 origin 默认值一并改成它。）
+  （2026-09-26 末：**本站住在 `www.cloudwing.top`** —— apex `cloudwing.top` 上是**旧站**，
+  **两个站并存**、不接管 apex（站长定）。四处 origin 默认值已改成 `https://www.cloudwing.top`。
+  ★第一版线上部署的 canonical 指向了 `cloudwing.top`（= 旧站），已在 §4 记录并修正★。）
 
 ### 3.5 日历页落地（2026-09-26）
 

@@ -10,8 +10,8 @@
 | 构建命令 | `npm run build` |
 | 构建输出目录 | `dist` |
 | 框架预设 | **None / 无** —— 本项目是 npm workspace + 自定义构建链，不要让预设插手 |
-| 环境变量 | `BLOG_SITE_ORIGIN` = `https://blog.cloudwing.top`（默认值已是它，显式设一遍更稳）；`NODE_VERSION` = `22.23.2`（可选，CF 默认的 24.18.0 也全绿） |
-| 自定义域名 | `blog.cloudwing.top`（见 §1.6） |
+| 环境变量 | ★`BLOG_SITE_ORIGIN` = `https://www.cloudwing.top`★（必设 + 改后要重新部署）；`NODE_VERSION` = `22.23.2`（可选，CF 默认的 24.18.0 也全绿） |
+| 自定义域名 | `www.cloudwing.top`（见 §1.6） |
 
 等构建跑完（约 3–5 分钟）→ 拿到 `*.pages.dev` 域名 → 接自定义域名 → 按 §4 的清单核对。
 
@@ -28,7 +28,7 @@
 | 缓存与安全响应头 | `apps/blog/public/_headers` | Astro 会把 `public/` 原样复制到产物根 → `dist/_headers` |
 | 重定向表 | 由 `scripts/blog/build-redirects.mjs` 生成 | → `dist/_redirects`（**不要手写**，生成器独占） |
 | 项目配置 | `wrangler.toml` | 项目名 + 产物目录 + `npx wrangler pages dev dist` 本地预览 |
-| 站点 origin | `apps/blog/astro.config.mjs` | 默认 `https://blog.cloudwing.top`（`BLOG_SITE_ORIGIN` 可覆盖） |
+| 站点 origin | `apps/blog/astro.config.mjs` | 默认 `https://www.cloudwing.top`（`BLOG_SITE_ORIGIN` 可覆盖） |
 
 ★`git remote` 已经理清★：`origin` = 本项目的仓库，`upstream` = 上游模板且 **push 地址被改成
 `DISABLED_UPSTREAM_IS_READ_ONLY`**（照模板 `ops/setup-remotes.sh` 的做法，物理上推不上去）。
@@ -58,18 +58,27 @@ git push -u origin migration/cloudwing    # 这个分支会成为默认分支
 ★私有仓库还要在 CF 的 GitHub App 里授权★：控制台建项目时选 GitHub —— 若仓库列表里看不到它，
 去 GitHub 的 Settings → Applications → Cloudflare Pages，把该仓库加进授权范围。
 
-## 1.6 域名：本站挂在子域 `blog.cloudwing.top`
+## 1.6 域名：本站住在 `www.cloudwing.top`
 
-★apex `cloudwing.top` 已被另一个站占用★ —— 一个主机名只能指向一个站，所以本站用子域
-（CF 文档：子域不要求域名是 CF zone，加一条 CNAME 即可）。
+同一个域名上有**两个站**（同一个 CF 账号下各自的项目）：
 
-在 CF 控制台：**项目 → Custom domains → Set up a custom domain → 填 `blog.cloudwing.top`**。
+| 主机名 | 是什么 |
+| --- | --- |
+| `cloudwing.top`（apex） | **旧站**（`endfield-blog` 那一版：暗色视频背景、画廊 / 音乐 / 导航 / 互动） |
+| `www.cloudwing.top` | **本站**（新基座：三维终端 + `/blog/` + `/calendar/` + `/lab/`） |
 
-- 域名若已托管在 Cloudflare：确认后会**自动**建好 CNAME 记录 ✓
-- 域名在别处：去 DNS 服务商加一条 CNAME，指向 `<项目名>.pages.dev` ✓
+一个主机名只能指向一个站，所以本站用 `www`（站长 2026-09-26 定：两个站并存，不接管 apex）。
+在 CF 控制台：**项目 → Custom domains → 填 `www.cloudwing.top`**。
 
-★这一步不做也可以先跑（`<项目名>.pages.dev` 直接能看）★，但**正式对外之前一定要接上** ——
-否则 canonical / sitemap 指向 `blog.cloudwing.top` 而实际访问在 pages.dev，等于给搜索引擎两个地址。
+★**必须在 CF 的环境变量里设 `BLOG_SITE_ORIGIN=https://www.cloudwing.top`**★，改完**重新部署**
+一次才生效。不设的话 canonical / og:url / sitemap / RSS 会指向 `cloudwing.top`，也就是**旧站**——
+2026-09-26 第一版部署实测正是这个毛病：新站的 canonical 写着 `https://cloudwing.top/blog/`，
+而那个地址是**旧站的「归档」页**，内容完全不同。
+
+⚠️ **并存期间的重复内容**（已知、暂不处理）：新站的文章是从旧站迁来的，同一篇内容在
+`cloudwing.top/posts/<slug>/`（旧）与 `www.cloudwing.top/<YYYY>/<MM>/<DD>/<slug>/`（新）都能打开。
+`www` 侧的 `_redirects` 已把**旧路径**映射到新路径（在 www 域内有效），但 apex 上的旧站仍会用自己的
+地址回一份 200。彻底解决要等站长决定旧站何时下线（或让旧站整体 301 到新站）。
 
 ## 1.9 ★建项目时必须选 Pages，不是 Workers★（实测踩过）
 
@@ -104,7 +113,7 @@ Executing user deploy command: npx wrangler deploy
 | `NODE_VERSION` | `22.23.2` | 实测通过的版本（README 写 24.14.0 无实测记录）。
 ★2026-09-26：CF 默认的 Node 24.18.0 也把八步链全绿跑完了★ —— 这个 pin 是为了让构建可复现，不是硬要求 |
 
-`BLOG_SITE_ORIGIN` 建议显式设成 `https://blog.cloudwing.top`（默认值已经是它）。
+★`BLOG_SITE_ORIGIN` 必须设成 `https://www.cloudwing.top`★（默认值已经是它，但线上要显式设 + 重新部署）。
 
 **依赖安装是干净的**：全仓库**没有任何 `postinstall` / `prepare`**，所以 CF 的 `npm ci`
 不会跑额外的构建或下载（`playwright` 的包清单里没有安装期脚本 —— 它不再自动下载浏览器，
