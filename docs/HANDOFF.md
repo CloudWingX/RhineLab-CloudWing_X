@@ -96,6 +96,21 @@ git push -u origin migration/cloudwing
   移开后生成 `/ /lab/ 200`；`preview` 下 `/` → 200 且是终端、`/posts/` 与 `/log/` → 301。
   ⚠️ 版本渲染、入口是否真的进终端，仍需真机确认（见 §5）。
 
+### 3.3 §3.2 搬家带出的相对导入（2026-09-26）
+
+§3.2 的搬家把首页的相对导入弄断了一级（`pages/` → `pages/blog/` 之后，`../layouts/` 得写成
+`../../layouts/`），`astro build` 在 `build:blog` 直接 `UNRESOLVED_IMPORT` 失败 —— **实测踩到**。
+
+- 修复：`blog/index.astro` 的两处导入各退一级（`dfaf6af`）。
+- **新增门禁** `scripts/blog/check-imports.mjs`（`npm run check:imports`）：静态解析 `src/` 与
+  `apps/blog/src` 下全部相对导入（实测 118 条），已接进 `npm run typecheck` 与统一构建链的**第一步**。
+  ★为什么非加不可★：这类错误 **`tsc` 抓不到** —— 根 `tsconfig.json` 的 include 只有 `src` 与
+  `shared/reading`，`apps/blog` 整个不在里面；而 `astro build` 只能在装了 Windows 原生二进制的
+  机器上跑。门禁是纯 JS，任何平台都能提前抓出来。
+- 反证：把导入改回错的一级，门禁精确报出
+  `apps/blog/src/pages/blog/index.astro → ../layouts/BaseLayout.astro`，退出码非 0。
+- 顺带更正：BUILD.md §2 之前写"六步"且漏登记了 `build:redirects` —— 构建链其实早就是七步，现在是八步。
+
 ## 4. 未完成
 
 1. **还有三个功能没搬**（旧站 13 条路由对照）：
@@ -129,12 +144,12 @@ git push -u origin migration/cloudwing
 
 ```bash
 npm ci                # 首次；仓库里没有 node_modules（不进 git）
-npm run build         # 统一构建，七步链
+npm run build         # 统一构建，八步链
 npm run preview -- --open   # 预览真实产物 dist/
 ```
 或者**双击仓库根的 `打开预览.cmd`**（构建 + 预览 + 开浏览器）；端口被占用时会自动顺延。
 
-七步链：`check:content → check:features → build:blog → build:lab → build:redirects → search:index → check:site`
+八步链：`check:imports → check:content → check:features → build:blog → build:lab → build:redirects → search:index → check:site`
 
 **当前验证状态（提交态）**（2026-09-26 深夜，Linux 侧）：`typecheck` 0 报错、`check:features` 通过
 （3 个功能：reader / album-viewer / music-player）、`npm run build` **exit 0**、

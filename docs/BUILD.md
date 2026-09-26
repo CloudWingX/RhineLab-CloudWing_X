@@ -10,27 +10,31 @@
 
 ## 2. 构建顺序
 
-`npm run build` 按固定顺序执行六步，后续步骤不会清空前序产物：
+`npm run build` 按固定顺序执行八步，后续步骤不会清空前序产物：
 
 | 顺序 | 命令 | 作用 |
 | --- | --- | --- |
-| 1 | `npm run check:content` | 内容 schema、路径唯一性、保留路由、封面、主题引用 |
-| 2 | `npm run check:features` | 功能模块边界：清单一致、入口唯一、无跨功能穿透、无孤儿文件 |
-| 3 | `npm run build:blog` | 先 `prepare:assets` 暂存白名单资源，再由 Astro 输出到 `dist/` |
-| 4 | `npm run build:lab` | Vite 构建 `/lab/` 到 `dist/lab/`（阅读层与它的 CSS 为独立懒加载 chunk） |
-| 5 | `npm run search:index` | Pagefind 生成全文检索索引到 `dist/pagefind/` |
-| 6 | `npm run check:site` | 产物完整性、未公开内容泄露、`/lab/` 边界、404 与 RSS/sitemap |
+| 1 | `npm run check:imports` | 相对导入静态解析：`src/` 与 `apps/blog/src` 的每条相对路径都能解析到真实文件 |
+| 2 | `npm run check:content` | 内容 schema、路径唯一性、保留路由、封面、主题引用 |
+| 3 | `npm run check:features` | 功能模块边界：清单一致、入口唯一、无跨功能穿透、无孤儿文件 |
+| 4 | `npm run build:blog` | 先 `prepare:assets` 暂存白名单资源，再由 Astro 输出到 `dist/` |
+| 5 | `npm run build:lab` | Vite 构建 `/lab/` 到 `dist/lab/`（阅读层与它的 CSS 为独立懒加载 chunk） |
+| 6 | `npm run build:redirects` | 生成 `dist/_redirects`（消费 `legacyUrls` + 站级规则，含根路径的 200 rewrite） |
+| 7 | `npm run search:index` | Pagefind 生成全文检索索引到 `dist/pagefind/` |
+| 8 | `npm run check:site` | 产物完整性、未公开内容泄露、`/lab/` 边界、404 与 RSS/sitemap |
 
 单独执行某一步：
 
 ```bash
+npm run check:imports
 npm run check:content
 npm run check:features
 npm run build:blog
 npm run build:lab
+npm run build:redirects
 npm run search:index
 npm run check:site
-npm run typecheck          # 三维 TypeScript 检查
+npm run typecheck          # 相对导入 + 三维 TypeScript 检查
 ```
 
 > **Windows 提示**：`npm run build` 通过 `spawnSync` 拉起各步 npm 子进程。若运行环境禁止子进程

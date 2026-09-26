@@ -153,7 +153,8 @@
 
 ```bash
 npm run check:features     # 模块边界（本文四条规则）
-npm run typecheck          # 类型与路径
+npm run check:imports      # 相对导入静态解析（tsc 覆盖不到的 apps/blog 也在内）
+npm run typecheck          # 类型与路径（含 check:imports）
 npm run test:reader        # 阅读层契约（reader）
 npm run build              # 统一构建（含 check:features）
 ```

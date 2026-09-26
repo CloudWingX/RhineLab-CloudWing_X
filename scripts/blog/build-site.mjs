@@ -16,6 +16,9 @@ const env = { ...process.env, BUILD_NOW: now };
 const isWindows = process.platform === "win32";
 
 const steps = [
+  // 相对导入最先查：路径错在建构建器里只会给一句 UNRESOLVED_IMPORT，
+  // 而且要在 Windows 上跑到那一步才看得见（调度器见下）。
+  "check:imports",
   "check:content",
   "check:features",
   "build:blog",
