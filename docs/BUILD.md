@@ -7,7 +7,6 @@
 
 - Node.js ≥ 22.12（开发环境 24.14.0）、npm 11.x；版本以 `package-lock.json` 为准。
 - 依赖安装：`npm ci --ignore-scripts`（官方 registry 连接不畅时可加 `--registry=https://registry.npmjs.org`）。
-- 认证服务需要 Go 工具链（仅当你要构建 `services/lab-auth/`）；纯博客与 `/lab/` 不需要。
 
 ## 2. 构建顺序
 
@@ -32,7 +31,6 @@ npm run build:lab
 npm run search:index
 npm run check:site
 npm run typecheck          # 三维 TypeScript 检查
-npm run check:account      # 账号端到端（需 Go 构建 services/lab-auth，且 dist/ 已构建）
 ```
 
 > **Windows 提示**：`npm run build` 通过 `spawnSync` 拉起各步 npm 子进程。若运行环境禁止子进程
@@ -47,10 +45,6 @@ npm run preview 8080       # 指定端口
 
 预览服务直接读 `dist/`：目录请求补 `index.html`，**未知路径返回真实 404**（没有 SPA 回落）。
 `preview.mjs` 只监听 `127.0.0.1`；需要用手机在同网段测试时，把监听地址改成 `0.0.0.0` 后重启。
-
-预览不接入账号服务：`/api/auth/session` 固定回答「未登录」（页头因此显示真实的未登录状态，
-而不是在控制台留下 404），登录表单会提示服务不可用，其余 `/api/auth/*` 是真实 404。
-要在这里验证真实登录，用 `npm run check:account`（它会拉起真实服务并反代到静态站点）。
 
 ## 4. 资源白名单
 
@@ -96,27 +90,14 @@ ssh root@203.0.113.10 "DEPLOY_ROOT=/srv/example-blog bash /srv/example-blog/ops/
 
 回滚后确认 `active` 指向、`/release.json` 内容与页面状态码，并重跑 smoke。
 
-## 7. 认证服务（可选）
+## 7. 健康检查与定时任务
 
-`services/lab-auth/` 是启动身份选择背后的 Go + SQLite 服务，与公开阅读解耦：它不可用时 GUEST
-与全部公开阅读仍然可用。相关脚本在 `ops/auth/`，unit 模板在 `ops/systemd/`，部署要点：
-
-- 二进制放 `/srv/example-blog-auth/releases/<版本>/`，用 `current` 软链切换；
-- 配置放 `/etc/example-blog-auth/auth.env`（0640，属主为服务用户），数据在 `/var/lib/example-blog-auth/`；
-- 服务只监听 unix socket，由 nginx 代理规范前缀 `/api/auth/`（兼容别名 `/lab/api/auth/`），
-  不直接暴露端口；片段同时把 `/…/admin/` 直接返回 404，管理面默认不在公网可达，需要远程操作时
-  在 nginx 上按网段放行或走内网/隧道，不要把管理前缀挂回公网；
-- 备份使用一致性快照并对快照做完整性校验（见 `ops/auth/backup.sh`）；快照含口令散列，CLI 与
-  systemd unit 都按 `0600` / `UMask=0077` 收敛权限。
-
-## 8. 健康检查与定时任务
-
-`ops/healthcheck.sh` 校验站点与入口状态码、未知路径 404、认证就绪、unit 状态、近一小时 5xx、
+`ops/healthcheck.sh` 校验站点与入口状态码、未知路径 404、unit 状态、近一小时 5xx、
 证书剩余天数、根分区占用与 active release 一致性，结果写入 `state/health.json`。
 `ops/systemd/` 提供备份与健康检查两个 unit 模板；安装后 `systemctl enable --now` 即可。
 默认告警只有 journal 与状态文件，需要邮件/Webhook 需另行接入。
 
-## 9. 排障
+## 8. 排障
 
 | 现象 | 排查 |
 | --- | --- |
@@ -130,7 +111,7 @@ ssh root@203.0.113.10 "DEPLOY_ROOT=/srv/example-blog bash /srv/example-blog/ops/
 | 发布后未生效 | `readlink active`、`/release.json`、reload 是否成功 |
 | 构建在第一步失败 | 内容校验未通过；按 `check:content` 的报错修正 frontmatter |
 
-## 10. 相关文档
+## 9. 相关文档
 
 - [docs/README.md](README.md)：文档索引
 - [AUTHORING.md](AUTHORING.md)：写作与内容维护

@@ -28,8 +28,6 @@ TypeScript / Three.js 三维界面作为独立的 `/lab/` 入口。
 
 - 博客部分：Astro 在构建时生成普通 HTML，文章有独立规范 URL，禁用 JavaScript / WebGL 仍可阅读。
 - 三维部分：`/lab/` 保留原生 Three.js 实现与已核验的视觉基线。
-- 认证部分：`services/lab-auth/` 是启动身份选择背后的 Go + SQLite 服务，与公开阅读解耦——
-  认证不可用时 GUEST 与公开阅读仍可用。
 
 **本仓库不含任何真实站点信息。** 域名一律为 `example.com`，主机一律为文档用网段
 `203.0.113.10`，账号、密钥名与部署路径均为示例值；不要把它们替换成真实值后提交。
@@ -45,7 +43,7 @@ TypeScript / Three.js 三维界面作为独立的 `/lab/` 入口。
 3. [BLOG-MAINTAIN-PERFECT.md](BLOG-MAINTAIN-PERFECT.md)：写作、构建、发布、回滚、备份与排障。
 4. [docs/AUTHORING.md](docs/AUTHORING.md)、[content/README.md](content/README.md)：frontmatter 字段与主题配置规则。
 5. [DESIGN.md](DESIGN.md)：三维视觉与行为基线。
-6. [docs/READER.md](docs/READER.md)：阅读层契约与参数；[docs/IDENTITY.md](docs/IDENTITY.md)：身份与认证。
+6. [docs/READER.md](docs/READER.md)：阅读层契约与参数。
 7. `package.json`、锁文件与源码：判断当前真正可用的命令与功能。
 
 区分三种信息：用户明确要求、当前工程方案、已验证事实。文档中标注“计划/待实现”的内容在落地前
@@ -68,14 +66,12 @@ TypeScript / Three.js 三维界面作为独立的 `/lab/` 入口。
 - `apps/blog/`：Astro 子应用；根 npm workspace 与统一 lockfile 管理依赖。
 - `content/posts/`、`content/pages/`：Markdown 正文；`content/lab-collections.json`：主题与文章 ID 引用。
 - `scripts/blog/`：内容校验、摘要生成、构建编排、打包与预览。
-- `src/features/<id>/`：**本站自有功能模块**（上游没有的登录/身份门、沉浸式阅读等），每个目录一个自包含
+- `src/features/<id>/`：**本站自有功能模块**（上游没有的沉浸式阅读、影像档案查看器、音乐播放器等），每个目录一个自包含
   单元，只通过 `index.ts` 对外暴露「宿主端口 + 门面」。上游自带文件保持原路径不动，因此上游同步仍是
   逐文件内容级移植。功能清单在 `features.manifest.json`，边界由 `npm run check:features` 校验；
   约定与增删流程见 [docs/FEATURES.md](docs/FEATURES.md) 与 [src/features/README.md](src/features/README.md)。
-- `ops/`：参数化部署、Web 配置、回滚与 smoke 工具；`services/lab-auth/`：账号服务源码
-  （登录/注册接口 + `/admin/*` 管理 API + `lab-auth` CLI）。
-- `shared/`：跨界面共用的库：`shared/reading/`（阅读层纯逻辑）、`shared/auth/`（账号规则、
-  API 客户端与会话桥）、字体 CSS。博客静态页与三维入口引用同一份实现。
+- `ops/`：参数化部署、Web 配置、回滚与 smoke 工具。
+- `shared/`：跨界面共用的库：`shared/reading/`（阅读层纯逻辑）与字体 CSS；博客静态页与三维入口引用同一份实现。
 - `art/`、`reference/`、`verification/`：模型工程、开发对照与验证入口。
 - `.generated/`、`dist/`、`release/` 与构建产物不作为正文来源，且不进 Git。
 
@@ -110,7 +106,6 @@ TypeScript / Three.js 三维界面作为独立的 `/lab/` 入口。
 npm ci --ignore-scripts
 npm run check:content          # 内容 schema、路径、草稿、封面、主题引用
 npm run check:features         # 功能模块边界：入口唯一、无跨功能穿透、无孤儿文件
-npm run check:account          # 账号端到端：CLI 建号 + 博客登录 + /lab/ 共享同一会话（需 Go）
 npm run test:blog              # 内容契约单元测试
 npm run typecheck              # 三维 TypeScript 检查
 npm run test:reader            # 沉浸式阅读契约/加载器/面板单元测试

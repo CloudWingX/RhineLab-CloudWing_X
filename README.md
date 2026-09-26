@@ -39,13 +39,12 @@ npm run preview         # 静态 dist/ 预览，未知路径返回真实 404
 | `content/lab-collections.json` | 三维档案的五个策展主题，引用稳定文章 ID |
 | `apps/blog/` | Astro 子应用：页面、布局、样式与内容契约 |
 | `src/`、`lab/` | 三维应用（上游代码）与 `/lab/` 入口 |
-| `src/features/<id>/` | 本站自有功能模块：启动身份门与登录（`auth`）、沉浸式阅读（`reader`） |
+| `src/features/<id>/` | 本站自有功能模块：沉浸式阅读（`reader`）、影像档案查看器（`album-viewer`）、音乐播放器（`music-player`） |
 | `shared/` | 博客与三维入口共用的库：阅读层纯逻辑、字体 CSS |
 | `scripts/blog/` | 内容校验、摘要生成、构建编排、打包与预览 |
 | `ops/` | 参数化部署、nginx 配置、systemd unit、回滚与 smoke 工具 |
-| `services/lab-auth/` | 启动身份认证服务（Go + SQLite） |
 | `art/`、`reference/` | Blender 工程与可复现脚本、开发对照工具 |
-| `docs/` | 说明性文档：写作、构建与发布、功能模块、阅读层、身份与认证、上游与许可 |
+| `docs/` | 说明性文档：写作、构建与发布、功能模块、阅读层、影像档案、音乐、上游与许可 |
 
 ## 文档
 
@@ -55,7 +54,8 @@ npm run preview         # 静态 dist/ 预览，未知路径返回真实 404
 | [docs/AUTHORING.md](docs/AUTHORING.md) | 写作与内容维护：frontmatter、草稿与未来文章、URL 与重定向、三维主题映射 |
 | [docs/BUILD.md](docs/BUILD.md) | 构建与发布：构建顺序、本地预览、资源白名单、release 打包与激活、回滚、排障 |
 | [docs/READER.md](docs/READER.md) | 沉浸式阅读：窗口与布局参数、控件与目录导航、内容白名单、滚动恢复 |
-| [docs/IDENTITY.md](docs/IDENTITY.md) | 账号体系：身份规则、接口与错误、Cookie/CSRF、账号库管理（CLI 与管理 API）、与博客共享登录态 |
+| [docs/ALBUM.md](docs/ALBUM.md) | 影像档案（图集）查看器：两个大类与档案记录的关系、数据来源、行为与验证 |
+| [docs/MUSIC.md](docs/MUSIC.md) | 音乐档案与播放器：曲目数据与素材、模块职责、Blob 播放、歌词同步 |
 | [docs/UPSTREAM.md](docs/UPSTREAM.md) | 上游来源与署名、第三方资源许可、处理上游更新的原则 |
 | [docs/fonts/README.md](docs/fonts/README.md) | 字体来源、许可与重建方式 |
 | [docs/README.md](docs/README.md) | 文档索引 |

@@ -38,7 +38,6 @@ git remote -v
 | --- | --- |
 | 博客层 | 新增 Markdown 写作、Astro 静态页面、RSS/sitemap、Pagefind 检索与独立文章 URL |
 | 阅读层 | 新增 `/lab/` 内的沉浸式全文阅读，见 [READER.md](READER.md) |
-| 认证 | 新增启动身份选择与 Go + SQLite 认证服务，见 [IDENTITY.md](IDENTITY.md) |
 | 脱敏 | 域名、主机、账号与个人内容替换为中性示例，见 [SANITIZE-NOTES.md](../SANITIZE-NOTES.md) |
 | PWA | 模板 MVP 默认**关闭** PWA；上游的离线安装说明仅作历史参考 |
 | 开场文字 | 固定短语使用描边图形（字形来源与许可见 `public/assets/boot-lettering-notice.txt`），仓库不分发字体文件 |
@@ -89,7 +88,7 @@ git remote -v
 | `src/model-viewer.ts` | 623 | 34 | 15 | **15** |
 | `src/style.css` | 2104 | 13 | 9 | **9** |
 
-**2026-09 模块化之后的收敛**：本站自有功能（启动身份门/登录、沉浸式阅读）已从 `src/` 根迁入
+**2026-09 模块化之后的收敛**：本站自有功能（沉浸式阅读、影像档案查看器、音乐播放器）已从 `src/` 根迁入
 `src/features/<id>/`，各自只通过 `index.ts` 暴露「宿主端口 + 门面」，`src/main.ts` 里只剩装配块与
 门面调用（详见 [FEATURES.md](FEATURES.md)）。因此上表中 `src/main.ts` 的重叠区主要落在装配块附近，
 上游改动该文件时的冲突面比 21 处更集中；上游自带文件路径未做任何移动，移植流程本身不变。

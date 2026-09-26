@@ -18,11 +18,12 @@
 
 | 功能 | 目录 | 加载方式 | 宿主端口 | 门面 |
 | --- | --- | --- | --- | --- |
-| 启动身份门与登录/注册 | `auth/` | 首屏静态引入 | `EntryHost` | `EntryFeature` |
 | 沉浸式 Markdown 阅读 | `reader/` | 按需 `import()` | `ReaderHost` | `ReaderFeature` |
+| 影像档案（图集）查看器 | `album-viewer/` | 按需 `import()` | `AlbumViewerHost` | `AlbumViewerFeature` |
+| 音乐档案播放器 | `music-player/` | 按需 `import()` | `MusicPlayerHost` | `MusicPlayerFeature` |
 
-加载方式决定样式表归属：`auth/` 的 CSS 由 `index.ts` 直接引入（序幕必须遮挡首帧），
-`reader/` 的 CSS 由 `styles.ts` 引入并被门面的懒加载路径一并 `import()`（首屏不为阅读层付费）。
+三个功能都按需加载，样式表归属因此一致：CSS 由各自的 `styles.ts` 引入，并被门面的懒加载路径
+一并 `import()`（首屏不为它们付费）。
 
 ## 增删一个功能
 

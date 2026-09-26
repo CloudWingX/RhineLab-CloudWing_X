@@ -46,7 +46,7 @@ ssh root@203.0.113.10 "DEPLOY_ROOT=/srv/example-blog bash /srv/example-blog/ops/
 服务器（只接收与激活，不构建）
   /srv/example-blog/{releases,incoming,state,ops}
   /srv/example-blog/active -> releases/<id>
-  nginx 静态站点 + 认证服务（可选）unix socket
+  nginx 静态站点
 ```
 
 要点：构建只在本机或 CI 完成；服务器接收不可变 release 后原子切换 `active` 软链并 reload nginx。
@@ -67,7 +67,6 @@ ssh root@203.0.113.10 "DEPLOY_ROOT=/srv/example-blog bash /srv/example-blog/ops/
 | --- | --- |
 | 部署根 | `/srv/example-blog`（`releases/`、`incoming/`、`state/`、`ops/`） |
 | Web 服务 | nginx；站点 vhost 见 `ops/nginx/production.conf` |
-| 认证服务 | `services/lab-auth/` 构建的 Go 二进制，监听 unix socket |
 | 定时任务 | unit 模板见 `ops/systemd/`（备份、健康检查） |
 | TLS | 自行申请与续期；证书路径在 vhost 中配置 |
 
@@ -182,44 +181,12 @@ npm run typecheck            # 三维 TypeScript 检查
 npm run test:reader          # 阅读层单元测试
 npm run test:reader-e2e      # 阅读层端到端总门（Playwright）
 npm run check:render-updates # 渲染复用与失效条件
-npm run check:boot-baseline  # 开场基线检查
-npm run test:identity        # 身份与用户名规则
-npm run test:entry           # 身份时间线
-npm run test:login-e2e       # 登录/注册端到端
-npm run check:account        # 账号端到端：CLI 建号 → 博客登录 → /lab/ 同一会话（需 Go）
-npm run bench:auth           # 认证服务容量压测
 npm run check:site           # 构建后产物、泄露与 lab 边界检查
 npm run build                # 完整构建
 npm run preview              # 静态预览
 npm run release -- --id <id> # 打包不可变 release
 node ops/smoke-test.mjs <url>
 ```
-
-### 6.1 账号管理命令（`lab-auth` CLI）
-
-账号库的日常操作优先走 CLI（也可用 `/api/auth/admin/*` 管理 API，字段与语义一致）。
-flag 写在位置参数之前，`-json` 输出与 API 字段一致：
-
-```bash
-lab-auth user list    -db <path>                    # 账号列表（-search/-enabled/-limit/-offset）
-lab-auth user show    -db <path> -json <用户名>
-lab-auth user create  -db <path> <用户名>            # 密码从终端隐藏输入两次
-lab-auth user disable -db <path> <用户名>            # 停用并撤销该账号会话
-lab-auth user enable  -db <path> <用户名>
-lab-auth user reset-password -db <path> <用户名>     # 重置并撤销会话
-lab-auth user delete  -db <path> [-force] <用户名>   # 删账号；最后一个可用账号需 -force
-lab-auth session list -db <path> [-user <ref>] [-state active]
-lab-auth session revoke -db <path> <用户名|user-id>
-lab-auth audit list   -db <path> [-action user.disable] [-limit 50]
-lab-auth db status    -db <path>                    # schema 版本、账号/会话/审计计数
-lab-auth db verify    -db <path>                    # 额外跑 PRAGMA integrity_check
-lab-auth db backup    -db <path> -out <file>
-lab-auth db restore   -src <file> -db <path>
-```
-
-- 每次变更都会写一条审计（actor `cli:<系统用户>`）；删除账号**不会**删除它的审计记录。
-- 已发布的迁移文件不可修改（`schema_migrations` 校验 SHA-256），只能追加 `000N_*.sql`。
-- 管理 API 需要 `LAB_AUTH_ADMIN_TOKEN`（≥32 字符），未设置时该接口返回 503 而非裸奔。
 
 ---
 
@@ -246,24 +213,9 @@ ssh root@203.0.113.10 "DEPLOY_ROOT=/srv/example-blog bash /srv/example-blog/ops/
 
 ## 9. 备份与恢复
 
-### 9.1 备份
-
-- 站点：源码在 Git，构建产物可由源码重建，因此主要备份**认证数据库**与服务器配置。
-- 认证库使用一致性快照（SQLite `VACUUM INTO`）并做完整性校验：
-
-```bash
-/srv/example-blog-auth/ops/backup.sh --db /var/lib/example-blog-auth/auth.db \
-  --out-dir /var/backups/example-blog-auth --bin /srv/example-blog-auth/releases/current/lab-auth
-```
-
-### 9.2 恢复
-
-停止认证服务 → 用快照替换数据库文件 → 校正属主与权限 → 启动并检查 `/health/ready`。
-**不要**用恢复旧库的方式回滚代码版本。
-
-### 9.3 保留策略
-
-快照按天保留最近若干份（unit 中 `--keep` 控制）；定期确认磁盘占用与快照可读性。
+- 站点：源码在 Git，构建产物可由源码重建，因此服务器侧只需备份部署配置（`ops/`、站点 vhost、
+  `$DEPLOY_ROOT/ops/deploy.env`）。
+- **不要**用恢复旧文件的方式回滚代码版本；回滚走 release 软链（见 §8）。
 
 ---
 
@@ -281,12 +233,11 @@ curl -s https://example.com/release.json
 
 - 当天 / 24h / 72h / 7d：nginx 错误日志、旧 URL 404、搜索、RSS、手机阅读、证书续期。
 - 磁盘与内存：避免在服务器上跑构建；注意备份与 release 累积。
-- 认证服务：`systemctl status`、`NRestarts`、RSS、最近一小时 5xx 计数。
 
 ### 10.3 定时任务
 
 unit 模板随 Git 保存在 `ops/systemd/`，脚本为 `ops/healthcheck.sh`；部署时安装到服务器并
-`systemctl enable --now`。健康检查会校验站点与入口状态码、未知路径 404、认证就绪、证书剩余天数、
+`systemctl enable --now`。健康检查会校验站点与入口状态码、未知路径 404、证书剩余天数、
 根分区占用与 active release 一致性，结果写入 `state/health.json`。
 
 告警通道默认只有 journal 与状态文件；如需邮件或推送需另行接入。
@@ -332,11 +283,11 @@ unit 模板随 Git 保存在 `ops/systemd/`，脚本为 `ops/healthcheck.sh`；�
 ## 14. 相关文档
 
 - [README.md](README.md)：项目定位、快速开始与许可范围。
-- [docs/README.md](docs/README.md)：文档索引（写作、构建发布、阅读层、身份认证、上游与许可）。
+- [docs/README.md](docs/README.md)：文档索引（写作、构建发布、阅读层、影像档案、音乐、上游与许可）。
 - [AGENTS.md](AGENTS.md)：代理协作约束与实施边界。
 - [docs/AUTHORING.md](docs/AUTHORING.md)、[content/README.md](content/README.md)：内容字段与写作流程。
 - [docs/BUILD.md](docs/BUILD.md)：构建顺序、发布、回滚与排障的命令级说明。
 - [docs/READER.md](docs/READER.md)：阅读层契约与参数。
-- [docs/IDENTITY.md](docs/IDENTITY.md)：身份、认证接口与运维约束。
+- [docs/ALBUM.md](docs/ALBUM.md)、[docs/MUSIC.md](docs/MUSIC.md)：影像档案与音乐档案。
 - [DESIGN.md](DESIGN.md)：三维视觉与行为基线。
 - [SANITIZE-NOTES.md](SANITIZE-NOTES.md)：本模板的脱敏范围与残留说明。

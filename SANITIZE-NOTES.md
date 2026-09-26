@@ -14,10 +14,9 @@
 | 服务器地址 | 真实公网 IP | `203.0.113.10`（RFC 5737 TEST-NET-3） |
 | SSH 私钥名 | `<所有者>_ed25519` | `example_ed25519` |
 | 部署根 / 数据目录 | `/srv/<所有者>-blog*` | `/srv/example-blog*` |
-| systemd unit | `<所有者>-auth` / `<所有者>-health` | `example-auth` / `example-health` |
+| systemd unit | `<所有者>-health` | `example-health` |
 | 启动身份品牌 | 站点所有者姓名 | `JOYCE MOORE` / `Joyce`（取自上游 RhineLabUI 的既有身份图形） |
 | 私人仓库 | `<用户>/<仓库>` | `example-org/example-blog` |
-| Go 模块路径 | 私人仓库路径 | `github.com/example-org/example-blog/services/lab-auth` |
 | 备案信息 | 真实 ICP / 公安备案号与图标 | **整体移除**，页脚留有按需填写的注释 |
 | 本机路径 | `C:/Users/<所有者>/…`、个人项目绝对路径 | 相对路径或 `C:/Users/example/…` |
 | 文章作者 | 站点所有者账号名 | `Example Author` |
@@ -35,7 +34,7 @@
 - **备案图标**：随备案号一并移除。
 - **开发过程文档**：真源仓库里的计划、门报告、评估与交接记录不随模板分发；其中仍然有效的结论与
   参数已**总结为操作与参考手册**：[docs/READER.md](docs/READER.md)（阅读层契约与参数）、
-  [docs/IDENTITY.md](docs/IDENTITY.md)（身份与认证规则）、[docs/UPSTREAM.md](docs/UPSTREAM.md)
+  [docs/UPSTREAM.md](docs/UPSTREAM.md)
   （来源与许可）、[docs/BUILD.md](docs/BUILD.md) 与 [docs/AUTHORING.md](docs/AUTHORING.md)（操作说明）。
 - **过时说明**：已废弃方案（不再使用的字体评估等）与指向已删产物的引用一并清理；
   仍依赖被删路径的两处脚本（README 截图输出目录、配对打包的历史门报告字段）已同步调整。
