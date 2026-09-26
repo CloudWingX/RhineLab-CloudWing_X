@@ -3,12 +3,18 @@ import content from "../.generated/lab-content.json" with { type: "json" };
 // 三维档案 adapter：读取构建时生成的公开内容目录，建立 postId -> href 索引，
 // 并校验没有悬空引用。只读取公开文章摘要，不加载 Markdown 正文。
 //
-// records 里混有两类档案，用 kind 区分：
+// records 里混有三类档案，用 kind 区分：
 //   - kind "post"  文章档案：有 postId / href，指向博客文章（阅读层用）
-//   - kind "album" 影像档案：一条记录 = 一个图集（Minecraft / Peak / 黑暗之魂2 /
-//                  AI生成 / 壁纸），没有文章，但带 images[] 供 album-viewer 使用
-// 两类都**进三维阵列**：阵列的列由 columns 决定，records 按 category 分列，
-// 因此「游戏影像 / 影像图集」就是阵列里真实存在的两列，会被 ↑↓←→ 走到。
+//   - kind "album" 影像档案：一条记录 = 一个图集槽位（Minecraft / Peak / 黑暗之魂2 /
+//                  AI生成 / 壁纸），没有文章，但需要 images[] 供 album-viewer 使用
+//   - kind "music" 音乐档案：一条记录 = 一首歌的槽位
+// 三类都**进三维阵列**：阵列的列由 columns 决定，records 按 category 分列，
+// 因此「游戏影像 / 影像图集 / 音乐」就是阵列里真实存在的列，会被 ↑↓←→ 走到。
+//
+// ★影像槽位不携带图片本体★：图集按模板的 SLOTS_PER_THEME 循环补位，同一个图集会在
+// 一列里出现多次；若每个槽位各带一份 images[]，产物会从 132 条膨胀到 413 条。生成物
+// 因此把图片单独放在顶层 albumImages（按 albumKey 索引），由这里把**同一份数组引用**
+// 挂到每个槽位上 —— 运行时共享，JSON 不重复。对消费方而言 LabAlbumSlot.images 照旧。
 
 /** 影像档案（图集）里的一张影像。 */
 export interface AlbumImage {
@@ -41,15 +47,18 @@ export interface LabPostSlot extends SlotBase {
 }
 
 /**
- * 影像档案：一条记录对应一个图集。
+ * 影像档案：一个槽位对应一个图集。
  *
  * 它没有文章，所以 postId / href 是空串——保留这两个字段（而不是省略）是为了让
  * 消费方（详情面板、阅读层宿主端口）不必到处写分支；空串在 those 处会被 kind 判断挡掉。
+ * `images` 在运行时由 adapter 从顶层 `albumImages` 挂上（多个槽位共享同一份数组）。
  */
 export interface LabAlbumSlot extends SlotBase {
   kind: "album";
   postId: "";
   href: "";
+  /** 指向顶层 `albumImages` 的键（= 图集名）。 */
+  albumKey: string;
   count: number;
   dateFrom: string;
   dateTo: string;
@@ -58,7 +67,7 @@ export interface LabAlbumSlot extends SlotBase {
 }
 
 /**
- * 音乐档案：一条记录 = 一首歌（与影集同构，也进三维阵列的「音乐」列）。
+ * 音乐档案：一个槽位对应一首歌（与影集同构，也进三维阵列的「音乐」列）。
  *
  * 和影像档案一样没有"文章"（postId / href 留空），但带播放器需要的曲目字段；
  * 歌词不进数据 —— 约定 `music/lyrics/<id>.lrc` 存在即自动同步。
@@ -90,24 +99,36 @@ export interface LabContent {
   records: LabSlot[];
 }
 
-const lab = content as LabContent;
+/** 生成物里影像槽位的形态：图片不进槽位（一张图只存一份），槽位只带 albumKey。 */
+interface RawAlbumSlot extends Omit<LabAlbumSlot, "images"> {
+  albumKey: string;
+}
+type RawLabSlot = LabPostSlot | RawAlbumSlot | LabMusicSlot;
+interface RawLabContent extends Omit<LabContent, "records"> {
+  /** 图集影像，按 albumKey 索引，整份产物里只存一次。 */
+  albumImages?: Record<string, AlbumImage[]>;
+  records: RawLabSlot[];
+}
+
+const raw = content as RawLabContent;
+const albumImages = raw.albumImages ?? {};
 
 const problems: string[] = [];
-if (!Array.isArray(lab.columns) || lab.columns.length === 0) {
+if (!Array.isArray(raw.columns) || raw.columns.length === 0) {
   problems.push("columns 必须是非空数组");
 }
-if (!Array.isArray(lab.categories)) problems.push("categories 必须是数组");
-if (!Array.isArray(lab.records)) problems.push("records 必须是数组");
+if (!Array.isArray(raw.categories)) problems.push("categories 必须是数组");
+if (!Array.isArray(raw.records)) problems.push("records 必须是数组");
 
 // 每一列都必须至少有一条档案：空列会让阵列里出现一条永远空着的泳道。
-const usedCategories = new Set(lab.records.map((record) => record.category));
-for (const column of lab.columns) {
+const usedCategories = new Set(raw.records.map((record) => record.category));
+for (const column of raw.columns) {
   if (!usedCategories.has(column)) problems.push(`列「${column}」没有任何档案`);
 }
 
 const hrefByPostId = new Map<string, string>();
 const seenIds = new Set<string>();
-for (const record of lab.records) {
+for (const record of raw.records) {
   if (!record.id || seenIds.has(record.id)) {
     problems.push(`档案 id 缺失或重复：${record.id}`);
   }
@@ -115,7 +136,7 @@ for (const record of lab.records) {
 
   if (!record.category) {
     problems.push(`档案 ${record.id} 缺少 category`);
-  } else if (!lab.columns.includes(record.category)) {
+  } else if (!raw.columns.includes(record.category)) {
     problems.push(`档案 ${record.id} 的 category「${record.category}」不在 columns 里`);
   }
 
@@ -142,16 +163,20 @@ for (const record of lab.records) {
   }
 
   if (record.kind === "album") {
-    if (!Array.isArray(record.images) || record.images.length === 0) {
-      problems.push(`影像档案 ${record.id} 没有任何影像`);
+    // 图片本体在顶层 albumImages：槽位只带 albumKey，这里解析并校验引用是否成立。
+    const images = albumImages[record.albumKey];
+    if (!Array.isArray(images) || images.length === 0) {
+      problems.push(
+        `影像档案 ${record.id} 的 albumKey「${record.albumKey}」在 albumImages 里没有影像`,
+      );
       continue;
     }
-    if (record.images.length !== record.count) {
+    if (images.length !== record.count) {
       problems.push(
-        `影像档案 ${record.id} 的 count=${record.count} 与 images=${record.images.length} 不符`,
+        `影像档案 ${record.id} 的 count=${record.count} 与 images=${images.length} 不符`,
       );
     }
-    for (const image of record.images) {
+    for (const image of images) {
       if (!image.src || !image.src.startsWith("/")) {
         problems.push(`影像档案 ${record.id} 的影像 src 必须是站内绝对路径：${image.src}`);
       }
@@ -177,15 +202,23 @@ if (problems.length) {
   throw new Error(`lab 内容校验失败：\n- ${problems.join("\n- ")}`);
 }
 
-export const labContent = lab;
-export const hasPosts = lab.records.some((record) => record.kind === "post");
-export const albums = lab.records.filter(
+// 把顶层 albumImages 的**同一份数组引用**挂到每个影像槽位上：内存里只有一份图集图片，
+// 消费方（album-viewer / 详情面板）拿到的仍是 LabAlbumSlot.images。
+const records: LabSlot[] = raw.records.map((record) =>
+  record.kind === "album"
+    ? { ...record, images: albumImages[record.albumKey] ?? [] }
+    : record,
+);
+
+export const labContent: LabContent = { ...raw, records };
+export const hasPosts = records.some((record) => record.kind === "post");
+export const albums = records.filter(
   (record): record is LabAlbumSlot => record.kind === "album",
 );
 /** 影像大类，按 records 里首次出现的顺序（即 gallery.json 的声明顺序）。 */
 export const albumCategories = [...new Set(albums.map((album) => album.category))];
-/** 音乐档案（一条 = 一首歌）；素材是否到位由生成期校验，这里只管数据形态。 */
-export const musicTracks = lab.records.filter(
+/** 音乐档案（一条 = 一首歌的槽位）；素材是否到位由生成期校验，这里只管数据形态。 */
+export const musicTracks = records.filter(
   (record): record is LabMusicSlot => record.kind === "music",
 );
 export function hrefForPost(postId: string): string | null {

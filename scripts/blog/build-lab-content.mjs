@@ -102,8 +102,20 @@ const blogPublicDir = resolve(root, "apps/blog/public");
 const albumCategories = [];
 let albumImageTotal = 0;
 
-/** 音乐大类：4 首歌各成一条档案，成为阵列的最后一列（与影集同构）。 */
+/**
+ * 图集的影像**只存一份**：`albumKey -> images[]`，槽位本身不重复携带。
+ *
+ * 槽位按模板的 SLOTS_PER_THEME 循环补位（与文章主题同一规则），因此同一个图集会在
+ * 一列里出现多次。如果让每个槽位各带一份 images[]，产物会从 132 条膨胀到 413 条
+ * （首屏 JSON 约 +42KB）；这里只写一次，由 adapter 把同一份数组引用挂到每个槽位上，
+ * 运行时共享、JSON 不重复。
+ */
+const albumImages = {};
+
+/** 音乐大类：每首歌各成一条档案，成为阵列的最后一列（与影集同构）。 */
 const MUSIC_CATEGORY = "音乐";
+/** 歌曲的**去重**条数（槽位数是补位后的，日志里分开播报）。 */
+let musicDistinct = 0;
 let gallery = null;
 try {
   gallery = JSON.parse(await readFile(galleryFile, "utf8"));
@@ -144,6 +156,9 @@ if (gallery) {
 
   for (const category of categories) {
     if (!albumCategories.includes(category.name)) albumCategories.push(category.name);
+
+    // 先把该类目下的图集收齐（含素材校验），再按模板同一规则铺满 SLOTS_PER_THEME 个槽位。
+    const albums = [];
     for (const album of category.albums ?? []) {
       const albumItems = items
         .filter((item) => item.game === album)
@@ -162,30 +177,11 @@ if (gallery) {
       }
 
       const dates = albumItems.map((item) => String(item.date)).filter(Boolean).sort();
-      const dateFrom = dates[0] ?? "";
-      const dateTo = dates.at(-1) ?? "";
-      displayNumber += 1;
-      albumImageTotal += albumItems.length;
-      records.push({
-        id: `X-${String(displayNumber).padStart(3, "0")}`,
-        displayNumber,
-        kind: "album",
-        // 影像档案没有文章：postId / href 留空，由 adapter 按 kind 分别校验。
-        postId: "",
-        href: "",
-        title: album,
-        en: album,
-        department: category.name,
-        category: category.name,
-        date: dateTo,
-        lead: "IMAGE ARCHIVE",
-        clearance: "PUBLIC",
-        abstract: `${album} 图集，属「${category.name}」，共 ${albumItems.length} 张影像，时间跨度 ${dateFrom} 至 ${dateTo}。`,
-        findings: [],
-        source: "",
+      albums.push({
+        name: album,
         count: albumItems.length,
-        dateFrom,
-        dateTo,
+        dateFrom: dates[0] ?? "",
+        dateTo: dates.at(-1) ?? "",
         cover: albumItems.at(-1)?.image ?? "",
         // 展示顺序取时间倒序（新的在前）
         images: [...albumItems].reverse().map((item) => ({
@@ -194,6 +190,42 @@ if (gallery) {
           date: item.date,
           aspect: item.aspect,
         })),
+      });
+    }
+    if (!albums.length) continue;
+
+    // 与文章主题同一规则：一列恰好 SLOTS_PER_THEME 个槽位，不足则循环补位。
+    for (let slot = 0; slot < SLOTS_PER_THEME; slot += 1) {
+      const album = albums[slot % albums.length];
+      // 影像只写一次（首次遇到该图集时），槽位只带 albumKey。
+      if (!albumImages[album.name]) {
+        albumImages[album.name] = album.images;
+        albumImageTotal += album.count;
+      }
+      displayNumber += 1;
+      records.push({
+        id: `X-${String(displayNumber).padStart(3, "0")}`,
+        displayNumber,
+        kind: "album",
+        // 影像档案没有文章：postId / href 留空，由 adapter 按 kind 分别校验。
+        postId: "",
+        href: "",
+        title: album.name,
+        en: album.name,
+        department: category.name,
+        category: category.name,
+        date: album.dateTo,
+        lead: "IMAGE ARCHIVE",
+        clearance: "PUBLIC",
+        abstract: `${album.name} 图集，属「${category.name}」，共 ${album.count} 张影像，时间跨度 ${album.dateFrom} 至 ${album.dateTo}。`,
+        findings: [],
+        source: "",
+        // 图片本体在产物顶层的 albumImages 里（只存一份），这里只留键。
+        albumKey: album.name,
+        count: album.count,
+        dateFrom: album.dateFrom,
+        dateTo: album.dateTo,
+        cover: album.cover,
       });
     }
   }
@@ -219,6 +251,8 @@ let musicCount = 0;
 try {
   const parsed = JSON.parse(await readFile(musicFile, "utf8"));
   const tracks = Array.isArray(parsed.tracks) ? parsed.tracks : [];
+  // 素材校验只做一次（每个文件 stat 一遍），槽位补位在下面按模板规则铺满。
+  const valid = [];
   for (const track of tracks) {
     if (!track || !track.id || !track.title) {
       errors.push("content/music.json：曲目缺少 id 或 title");
@@ -235,10 +269,17 @@ try {
         errors.push(`content/music.json：曲目「${track.id}」的 ${key} 不存在：${value}`);
       }
     }
+    valid.push(track);
+  }
+  musicDistinct = valid.length;
+  if (valid.length) musicCount = 1;
+
+  // 与文章主题、影像大类同一规则：一列恰好 SLOTS_PER_THEME 个槽位，不足则循环补位。
+  for (let slot = 0; slot < SLOTS_PER_THEME && valid.length > 0; slot += 1) {
+    const track = valid[slot % valid.length];
     const minutes = Math.floor((track.duration ?? 0) / 60);
     const seconds = String(Math.round((track.duration ?? 0) % 60)).padStart(2, "0");
     displayNumber += 1;
-    musicCount += 1;
     records.push({
       id: `X-${String(displayNumber).padStart(3, "0")}`,
       displayNumber,
@@ -296,6 +337,8 @@ await writeFile(
       site: SITE,
       columns,
       categories: columns,
+      // 图集影像只存一份，按 albumKey 索引；槽位（records 里的影像档案）只带键。
+      albumImages,
       records,
     },
     null,
@@ -307,8 +350,11 @@ await writeFile(
 const postRecords = records.filter((r) => r.kind === "post");
 const albumRecords = records.filter((r) => r.kind === "album");
 const songRecords = records.filter((r) => r.kind === "music");
+// 槽位数与去重条数分开播报：影集/曲目列按模板规则循环补位，槽位会比图集/歌曲多。
+const distinctAlbums = Object.keys(albumImages).length;
 console.log(
   `三维内容生成：${columns.length} 列（${collections.themes.length} 文章主题 + ${albumCategories.length} 影像大类 + ${musicCount ? 1 : 0} 音乐）；` +
     `档案 ${records.length} 条 —— 文章 ${postRecords.length} 条（引用 ${new Set(postRecords.map((r) => r.postId)).size} 篇公开文章）、` +
-    `影像 ${albumRecords.length} 个图集（${albumImageTotal} 张）、音乐 ${songRecords.length} 首。`,
+    `影像 ${albumRecords.length} 槽（${distinctAlbums} 个图集 / ${albumImageTotal} 张，图片只存一份）、音乐 ${songRecords.length} 槽（${musicDistinct} 首）。` +
+    `每列 ${SLOTS_PER_THEME} 槽。`,
 );
