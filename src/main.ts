@@ -219,7 +219,18 @@ function readLocal<T>(key: string, fallback: T): T {
     return fallback;
   }
 }
+// ★收藏按「槽位编号」（X-001 这种）存，不按文章 id★ —— 上游 RhineLabUI 就是这么存的
+// （`saved.has(r.id)`）。按 postId 存会出 bug：一篇文章/一个图集在阵列里占多个槽位
+// （策展主题与影像/音乐列都会循环补位，见 docs/HANDOFF.md §3.1），于是收藏页把每个槽位
+// 都列一遍，看起来就是"同一个档案出现好几份"。
 const saved = new Set<string>(readLocal<string[]>("example-saved", []));
+// 兼容早期版本存的 postId：迁移成"承载它的第一个槽位编号"，迁移不过来的丢掉。
+for (const entry of [...saved]) {
+  if (records.some((record) => record.id === entry)) continue;
+  const slot = records.find((record) => record.kind === "post" && record.postId === entry);
+  saved.delete(entry);
+  if (slot) saved.add(slot.id);
+}
 const storedPrefs = readLocal<Partial<{ sound: boolean; music: boolean; soundVolume: number; musicVolume: number; reduced: boolean; quality: boolean; rendering: RenderQuality; colorTheme: ThemePreference; motion: StoredMotion; motionPreset: MotionPreset }>>("rhine-settings", {});
 // 上游细粒度动效：旧的单一 reduced 设置会被迁移为逐键偏好。
 const initialMotion = createMotionPreferences(
@@ -572,8 +583,16 @@ function openFile() {
     });
   });
 }
+/** 收藏按钮的文案：三类档案各用自己的说法（上游是 SAVE ARCHIVE / 收藏档案）。 */
+function savedActionLabel(kind: ArchiveRecord["kind"]) {
+  if (kind === "album") return { en: "＋ SAVE IMAGES", cn: "收藏影像" };
+  if (kind === "music") return { en: "＋ SAVE TRACK", cn: "收藏曲目" };
+  return { en: "＋ SAVE ARTICLE", cn: "收藏文章" };
+}
+
 function toggleSaved() {
-  const id = records[selected].postId;
+  const record = records[selected];
+  const id = record.id;
   if (saved.has(id)) saved.delete(id);
   else saved.add(id);
   try {
@@ -582,8 +601,9 @@ function toggleSaved() {
   $("#saved-count").textContent = String(saved.size).padStart(2, "0");
   const button = $<HTMLButtonElement>('[data-action="bookmark"]');
   const added = saved.has(id);
-  button.firstChild!.textContent = added ? "− REMOVE FROM SAVED" : "＋ SAVE ARCHIVE";
-  button.querySelector("span")!.textContent = added ? "已收藏" : "收藏档案";
+  const labels = savedActionLabel(record.kind);
+  button.firstChild!.textContent = added ? "− REMOVE FROM SAVED" : labels.en;
+  button.querySelector("span")!.textContent = added ? "已收藏" : labels.cn;
   button.setAttribute("aria-pressed", String(added));
   bookmarkFeedback?.cancel();
   if (motionActive("surfaceTransitions")) bookmarkFeedback = button.animate(
@@ -631,15 +651,30 @@ function detailMetadata(r: ArchiveRecord) {
   return `<dl class="metadata"><div><dt>DEPARTMENT / 科室</dt><dd>${escapeHtml(r.department)}</dd></div><div><dt>COLLECTION / 编目范围</dt><dd>${escapeHtml(r.date)}</dd></div><div><dt>RELATED / 相关人物</dt><dd>${escapeHtml(r.lead)}</dd></div><div><dt>STATUS / 状态</dt><dd><i></i>${r.clearance === "RESTRICTED" ? "目录访问" : "已归档 · 可读取"}</dd></div></dl>`;
 }
 
+/**
+ * 详情操作区：三类档案都是 `[收藏][各自的操作][下载]`。
+ *
+ * 上游 RhineLabUI 的版式是「一个主按钮 + 一个窄的导出链」，本基座把那个导出换成了
+ * 「阅读全文」。这里把导出恢复回来，并保持同一顺序：收藏（主按钮）→ 该档案的操作 →
+ * 下载（窄链，`.export-button`）。
+ */
 function detailActions(r: ArchiveRecord) {
+  const savedAlready = saved.has(r.id);
+  const labels = savedActionLabel(r.kind);
+  const bookmark = `<button class="solid-button" data-action="bookmark">${savedAlready ? "− REMOVE FROM SAVED" : labels.en}<span>${savedAlready ? "已收藏" : labels.cn}</span></button>`;
+
   if (r.kind === "album") {
-    return '<div class="detail-actions"><button class="solid-button" data-action="open-album-viewer">VIEW IMAGES<span>查看详情</span></button></div>';
+    // 图集没有正文：导出它的素材 —— 整包影像（构建期打成 ZIP，见 scripts/blog/export-archives.mjs）。
+    const zip = `archives/${encodeURIComponent(r.albumKey)}-images.zip`;
+    return `<div class="detail-actions">${bookmark}<button class="solid-button" data-action="open-album-viewer">VIEW IMAGES<span>查看详情</span></button><a class="export-button" href="${escapeHtml(assetUrl(zip))}" download="${escapeHtml(r.albumKey)}-images.zip" aria-label="下载 ${escapeHtml(r.albumKey)} 的全部影像">IMAGES <span>↓</span></a></div>`;
   }
   if (r.kind === "music") {
-    return '<div class="detail-actions"><button class="solid-button" data-action="play-track">PLAY<span>播放</span></button></div>';
+    // 曲目本来就是静态素材，直接下载它自己，不必另外生成文件。
+    return `<div class="detail-actions">${bookmark}<button class="solid-button" data-action="play-track">PLAY<span>播放</span></button><a class="export-button" href="${escapeHtml(assetUrl(r.src))}" download aria-label="下载 ${escapeHtml(r.title)}">AUDIO <span>↓</span></a></div>`;
   }
-  const savedAlready = saved.has(r.postId);
-  return `<div class="detail-actions"><button class="solid-button" data-action="bookmark">${savedAlready ? "− REMOVE FROM SAVED" : "＋ SAVE ARTICLE"}<span>${savedAlready ? "已收藏" : "收藏文章"}</span></button><a class="export-button" data-action="read-immersive" href="${escapeHtml(r.href)}" aria-label="阅读 ${escapeHtml(r.title)} 全文">阅读全文 <span>→</span></a></div>`;
+  // 文章档案：导出一份纯文本档案记录（构建期生成，版式照上游 archiveText）。
+  const text = `archives/CLOUDWING-${r.id}.txt`;
+  return `<div class="detail-actions">${bookmark}<a class="export-button" data-action="read-immersive" href="${escapeHtml(r.href)}" aria-label="阅读 ${escapeHtml(r.title)} 全文">阅读全文 <span>→</span></a><a class="export-button" href="${escapeHtml(assetUrl(text))}" download="CLOUDWING-${r.id}.txt" aria-label="导出 ${r.id} 档案">EXPORT <span>↓</span></a></div>`;
 }
 
 function detailFootnote(r: ArchiveRecord) {
@@ -688,7 +723,7 @@ function renderDetail() {
   $("#detail-content").setAttribute("tabindex", "-1");
   document
     .querySelector<HTMLElement>('[data-action="bookmark"]')
-    ?.setAttribute("aria-pressed", String(r.kind === "post" && saved.has(r.postId)));
+    ?.setAttribute("aria-pressed", String(saved.has(r.id)));
   documentDecryption.reset($("#detail-content"), !motionActive("documentReveal") || scene.decryptionFrame.phase === "clear");
   setTab(activeTab, false);
 }
@@ -819,13 +854,13 @@ function renderModal() {
 }
 function renderResults() {
   const query = searchQuery.toLowerCase();
-  // 文章档案与影像档案同处 records，检索与大类筛选对两者一视同仁。
-  // 「收藏」只收文章（影像档案没有 postId），所以 saved 模式把它们排除在外。
+  // 三类档案同处 records，检索与大类筛选一视同仁。
+  // 收藏按**槽位编号**判定：占多个槽位的档案因此只在收藏页出现一次。
   const hits = records
     .map((r, i) => ({ r, i }))
     .filter(
       ({ r }) =>
-        (modal !== "saved" || (r.kind === "post" && saved.has(r.postId))) &&
+        (modal !== "saved" || saved.has(r.id)) &&
         (filter === "全部档案" || r.category === filter) &&
         `${r.id} ${r.title} ${r.en} ${r.department} ${r.lead}`
           .toLowerCase()
@@ -842,7 +877,7 @@ function renderResults() {
                 : r.clearance === "RESTRICTED"
                   ? "CATALOG ONLY"
                   : "AUTHORIZED";
-          const mark = r.kind === "post" && saved.has(r.postId) ? "<i>＋</i>" : "";
+          const mark = saved.has(r.id) ? "<i>＋</i>" : "";
           return `<button class="result-row" data-result="${i}"><span class="result-name"><b>${r.id}</b><span>${escapeHtml(r.title)}<small>${escapeHtml(r.en)}</small></span>${mark}</span><span>${escapeHtml(r.department)}</span><span>${access} <i>↗</i></span></button>`;
         })
         .join("")
