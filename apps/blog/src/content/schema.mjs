@@ -8,6 +8,8 @@ export const POST_ID_PATTERN = /^(wp-\d+|post-[0-9a-f-]{8,})$/;
 
 export const RESERVED_PATH_PREFIXES = [
   "/lab",
+  // 站点根是三维终端（_redirects 的 200 rewrite），博客首页在 /blog/ —— 都是真路由。
+  "/blog",
   "/tags",
   "/categories",
   "/search",

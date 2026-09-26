@@ -58,7 +58,7 @@ const published = [...posts, ...pages].filter((entry) => isPublished(entry, now)
 const hidden = [...posts, ...pages].filter((entry) => !isPublished(entry, now));
 
 const requiredFiles = [
-  "index.html",
+  "blog/index.html",
   "404.html",
   "rss.xml",
   "robots.txt",
@@ -69,6 +69,13 @@ const requiredFiles = [
 ];
 for (const file of requiredFiles) {
   if (!(await exists(resolve(dist, file)))) fail(`缺少构建产物 dist/${file}`);
+}
+
+// 站点开屏依赖 `_redirects` 里的 `/ → /lab/ 200`（rewrite，地址栏保持 `/`）。
+// ★200 让位于静态文件★：根路径上若还留着一个 index.html，rewrite 就不生效 ——
+// 而博客首页已经搬到 /blog/ 了，那个文件只可能是上一次构建的残留。
+if (await exists(resolve(dist, "index.html"))) {
+  fail("dist/index.html 不应存在：根路径是 _redirects 的 200 rewrite，有文件会让它不生效（多半是旧构建残留，删掉 dist/ 重新构建）");
 }
 
 // Release hygiene: no repository, secrets, database dumps or private exports.
@@ -97,7 +104,7 @@ for (const entry of hidden) {
 
 // Hidden markers must not appear in any public HTML or the RSS feed.
 if (hidden.length > 0) {
-  const publicHtml = [resolve(dist, "index.html"), resolve(dist, "rss.xml")];
+  const publicHtml = [resolve(dist, "blog/index.html"), resolve(dist, "rss.xml")];
   for (const file of publicHtml) {
     if (!(await exists(file))) continue;
     const text = await read(file);
@@ -112,7 +119,7 @@ if (hidden.length > 0) {
 // Blog reading must not pull in the 3D/audio stack, and production pages must
 // not be accidentally noindex.
 const forbiddenRefs = [".glb", "atmosphere.ogg", "three.module", "/lab/assets/"];
-const blogPages = ["index.html", ...published.map((entry) => `${entry.path.replace(/^\/+|\/+$/g, "")}/index.html`)];
+const blogPages = ["blog/index.html", ...published.map((entry) => `${entry.path.replace(/^\/+|\/+$/g, "")}/index.html`)];
 for (const relative of blogPages) {
   const file = resolve(dist, relative);
   if (!(await exists(file))) continue;

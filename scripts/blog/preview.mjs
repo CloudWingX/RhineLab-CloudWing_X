@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -67,24 +67,59 @@ async function findFile(urlPath) {
   }
 }
 
-/** The account API is an optional component and this preview has no backend. */
-const SESSION_PATHS = ["/api/auth/session", "/lab/api/auth/session"];
+/**
+ * 读产物里的 `_redirects`（由 `scripts/blog/build-redirects.mjs` 生成）。
+ *
+ * ★为什么必须读它★：本预览服务的就是 `dist/`，而**站点开屏**（根 `/` 用 200 rewrite
+ * 直接给三维终端）完全依赖这条规则 —— 预览不认它，本地访问 `/` 就是 404，
+ * 它自称的"与线上一致"也就不成立了。
+ *
+ * 只实现本项目用到的语义：精确路径 + 结尾 `*` 的前缀匹配，按文件顺序取第一条命中的。
+ * （CF Pages 还支持 `:placeholder` 等写法，本项目没有用到，不实现。）
+ */
+async function loadRedirects() {
+  let text = "";
+  try {
+    text = await readFile(join(dist, "_redirects"), "utf8");
+  } catch {
+    return [];
+  }
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"))
+    .map((line) => {
+      const [from, to, status] = line.split(/\s+/);
+      return { from, to, status: Number(status) || 301 };
+    })
+    .filter((rule) => rule.from && rule.to);
+}
+
+const redirects = await loadRedirects();
+
+function matchingRule(urlPath) {
+  return redirects.find((rule) =>
+    rule.from.endsWith("*") ? urlPath.startsWith(rule.from.slice(0, -1)) : urlPath === rule.from,
+  );
+}
 
 function createPreviewServer() {
   return createServer(async (request, response) => {
     const urlPath = (request.url ?? "/").split("?")[0];
-    // 账号岛在每个页面查询一次登录态。静态预览没有账号服务，这里只回答
-    // 「未登录」，让页头渲染真实的未登录状态，而不是在控制台留下一个 404。
-    // 其余 /api/auth/* 一律真实 404——预览不假装登录可用。
-    if (SESSION_PATHS.includes(urlPath)) {
-      response.writeHead(200, {
-        "Content-Type": MIME[".json"],
-        "Cache-Control": "no-store",
-      });
-      response.end('{"authenticated":false}');
+
+    // 301 / 302 优先于静态文件（CF Pages 的语义：命中规则就把请求转走）。
+    const rule = matchingRule(urlPath);
+    if (rule && rule.status !== 200) {
+      response.writeHead(rule.status, { Location: rule.to });
+      response.end();
       return;
     }
-    const file = await findFile(request.url ?? "/");
+
+    let file = await findFile(request.url ?? "/");
+    // 200 是 rewrite：**静态文件优先**，只有文件不存在时才用目标内容作答（地址栏不变）。
+    // 这与 CF Pages 一致，也正是构建期要拦"根路径上还留着 index.html"的原因。
+    if (!file && rule && rule.status === 200) file = await findFile(rule.to);
+
     if (!file) {
       const notFound = join(dist, "404.html");
       try {
@@ -127,7 +162,11 @@ function listen(port, attemptsLeft = 10) {
   server.listen(port, "127.0.0.1", () => {
     const url = `http://127.0.0.1:${port}/`;
     console.log(`预览 ${url} （静态 dist/，未知路径返回真实 404）`);
-    console.log("账号接口未接入本预览：登录态固定为未登录，登录表单会提示服务不可用。");
+    console.log(
+      redirects.length
+        ? `已载入 dist/_redirects：${redirects.length} 条规则（根路径是 200 rewrite，开屏即三维终端）。`
+        : "未找到 dist/_redirects —— 先跑一次构建，根路径才会进三维终端。",
+    );
     if (openBrowser) openInBrowser(url);
   });
 }
