@@ -37,8 +37,8 @@ import {
   archiveColumns,
   columnFiles,
   fileLocation,
-  musicTracks,
   type ArchiveAlbum,
+  type ArchiveMusic,
 } from "./data";
 import { TerminalAudio } from "./audio";
 import { audioSettingsMarkup } from "./audio-settings";
@@ -61,7 +61,6 @@ $("#stage").innerHTML = `
   <nav class="system-nav" aria-label="系统导航">
     <button data-action="search"><span class="nav-glyph">⌕</span> ARCHIVE INDEX <span class="key">/</span></button>
     <button data-action="saved" aria-label="查看收藏档案" title="收藏档案">＋ SAVED <span id="saved-count">00</span></button>
-    <button data-action="open-music" aria-label="打开音乐播放器" title="音乐播放器"><span class="nav-glyph">♪</span> MUSIC</button>
     <button data-action="settings" aria-label="系统设置" title="系统设置"><span class="settings-glyph">◷</span></button>
   </nav>
   <button id="skip" class="skip" data-action="skip">ENTER SYSTEM <span>↗</span></button>
@@ -590,9 +589,13 @@ function toggleSaved() {
 function renderDetail() {
   tabTransition.cancel();
   const r = records[selected];
-  // 影像档案（图集）走另一套模板：它没有文章的三页签，也没有可检视的文档模型。
+  // 影像档案（图集）与音乐档案各走一套模板：它们都没有文章的三页签。
   if (r.kind === "album") {
     renderAlbumDetail(r);
+    return;
+  }
+  if (r.kind === "music") {
+    renderMusicDetail(r);
     return;
   }
   // 从图集切回文章档案时，把详情页上那块"三维物体"说明恢复出来。
@@ -630,6 +633,30 @@ function renderAlbumDetail(album: ArchiveAlbum) {
   <div class="panel-label">ABSTRACT / 摘要</div><p>${escapeHtml(album.title)} 图集，属「${escapeHtml(album.category)}」，共 ${album.count} 张影像，时间跨度 ${escapeHtml(album.dateFrom)} 至 ${escapeHtml(album.dateTo)}。</p>
   <div class="detail-actions"><button class="solid-button" data-action="open-album-viewer">VIEW IMAGES<span>查看详情</span></button></div>
   <div class="detail-footnote"><span>ALBUM ${String(albums.indexOf(album) + 1).padStart(3, "0")} / ${String(albums.length).padStart(3, "0")}</span><span>${album.count} IMAGES</span></div>`;
+  $("#detail-content").setAttribute("tabindex", "-1");
+  documentDecryption.reset($("#detail-content"), !motionActive("documentReveal") || scene.decryptionFrame.phase === "clear");
+}
+
+/**
+ * 音乐档案的详情。一条记录 = 一首歌：元数据换成曲目信息（艺术家 / 专辑 / 时长 / 音源），
+ * 操作区是「播放」——点开交给 features/music-player 的单曲播放浮层。
+ *
+ * 音乐和影像档案一样没有文章，所以不出现「阅读全文」与收藏；
+ * 也没有可检视的"文档模型"，因此隐藏 object-caption 那块。
+ */
+function renderMusicDetail(track: ArchiveMusic) {
+  $(".object-caption").hidden = true;
+  $("#object-id").textContent = "NO." + String(track.displayNumber).padStart(3, "0");
+  const minutes = Math.floor(track.duration / 60);
+  const seconds = String(Math.round(track.duration % 60)).padStart(2, "0");
+  $("#detail-content").innerHTML = `
+  <div class="detail-kicker"><span>FILE ${escapeHtml(track.id)}</span><span>${escapeHtml(track.category)}</span></div>
+  <h2>${escapeHtml(track.en)}</h2><div class="detail-title-cn">${escapeHtml(track.title)}<span>${escapeHtml(track.category)}</span></div>
+  <div class="detail-rule"></div>
+  <dl class="metadata"><div><dt>ARTIST / 艺术家</dt><dd>${escapeHtml(track.artist)}</dd></div><div><dt>ALBUM / 专辑</dt><dd>${escapeHtml(track.album)}</dd></div><div><dt>LENGTH / 时长</dt><dd>${minutes}:${seconds}</dd></div><div><dt>SOURCE / 音源</dt><dd>${escapeHtml(track.origin)}</dd></div></dl>
+  <div class="panel-label">ABSTRACT / 摘要</div><p>${escapeHtml(track.abstract)}</p>
+  <div class="detail-actions"><button class="solid-button" data-action="play-track">PLAY<span>播放</span></button></div>
+  <div class="detail-footnote"><span>TRACK ${escapeHtml(track.id)} · ${track.sizeMB} MB</span><span>${track.instrumental ? "INSTRUMENTAL / 纯音乐" : "WITH LYRICS / 有歌词"}</span></div>`;
   $("#detail-content").setAttribute("tabindex", "-1");
   documentDecryption.reset($("#detail-content"), !motionActive("documentReveal") || scene.decryptionFrame.phase === "clear");
 }
@@ -765,9 +792,11 @@ function renderResults() {
           const access =
             r.kind === "album"
               ? `${r.count} IMAGES`
-              : r.clearance === "RESTRICTED"
-                ? "CATALOG ONLY"
-                : "AUTHORIZED";
+              : r.kind === "music"
+                ? `MP3 · ${r.bitrate} kbps`
+                : r.clearance === "RESTRICTED"
+                  ? "CATALOG ONLY"
+                  : "AUTHORIZED";
           const mark = r.kind === "post" && saved.has(r.postId) ? "<i>＋</i>" : "";
           return `<button class="result-row" data-result="${i}"><span class="result-name"><b>${r.id}</b><span>${escapeHtml(r.title)}<small>${escapeHtml(r.en)}</small></span>${mark}</span><span>${escapeHtml(r.department)}</span><span>${access} <i>↗</i></span></button>`;
         })
@@ -973,10 +1002,13 @@ document.addEventListener("click", (e) => {
     el.focus({ preventScroll: true });
     albumViewerFeature.open(record, el, !motionActive("viewerNavigation"));
   }
-  if (action === "open-music") {
+  if (action === "play-track" && mode === "detail") {
+    const record = records[selected];
+    if (!record || record.kind !== "music") return;
     // Safari 不一定在点击时给按钮焦点；显式捕获入口，关闭时才能可靠归还焦点。
     el.focus({ preventScroll: true });
-    musicPlayerFeature.open(musicTracks, el, !motionActive("viewerNavigation"));
+    // 按钮写的就是「播放」，所以直接起播；浏览器若拦下自动播放，浮层里还有播放键。
+    musicPlayerFeature.open(record, el, !motionActive("viewerNavigation"), true);
   }
   if (action === "search" || action === "saved" || action === "settings") {
     el.focus({ preventScroll: true });

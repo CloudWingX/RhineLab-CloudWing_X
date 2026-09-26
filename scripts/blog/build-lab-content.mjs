@@ -101,6 +101,9 @@ const blogPublicDir = resolve(root, "apps/blog/public");
 /** 影像大类，按 gallery.json 的声明顺序；追加到 columns 后面成为阵列的第 6、7 列。 */
 const albumCategories = [];
 let albumImageTotal = 0;
+
+/** 音乐大类：4 首歌各成一条档案，成为阵列的最后一列（与影集同构）。 */
+const MUSIC_CATEGORY = "音乐";
 let gallery = null;
 try {
   gallery = JSON.parse(await readFile(galleryFile, "utf8"));
@@ -203,15 +206,16 @@ if (gallery) {
 }
 
 // ── 音乐（曲目表）────────────────────────────────────────────────────────
-// content/music.json 与 gallery.json 同级，都是"内容侧唯一数据源"。这里只做两件事：
-// 接进 .generated/lab-content.json（lab 应用只读这一个文件），并校验每条曲目的音频与封面
-// 在 public/music 里真实存在 —— 缺素材就中断构建，而不是发出一个"点了没声音"的播放器。
+// content/music.json 是"内容侧唯一数据源"，这里把它转成**档案记录**并入 records ——
+// 与影集同一套做法：一条记录 = 一首歌，按 category 分列，于是「音乐」就是阵列里的一列。
+// 只做两件事：并入 records，并校验每条曲目的音频与封面在 public/music 里真实存在 ——
+// 缺素材就中断构建，而不是发出一个"点了没声音"的播放器。
 // ★路径保持站内相对形态（/music/…）★：lab 应用用 assetUrl() 解析（自动带上 /lab/ 前缀），
 // 所以这里不写死 base。
 const musicFile = resolve(root, "content/music.json");
 const musicPublicDir = resolve(root, "public");
 
-let music = { tracks: [] };
+let musicCount = 0;
 try {
   const parsed = JSON.parse(await readFile(musicFile, "utf8"));
   const tracks = Array.isArray(parsed.tracks) ? parsed.tracks : [];
@@ -231,8 +235,41 @@ try {
         errors.push(`content/music.json：曲目「${track.id}」的 ${key} 不存在：${value}`);
       }
     }
+    const minutes = Math.floor((track.duration ?? 0) / 60);
+    const seconds = String(Math.round((track.duration ?? 0) % 60)).padStart(2, "0");
+    displayNumber += 1;
+    musicCount += 1;
+    records.push({
+      id: `X-${String(displayNumber).padStart(3, "0")}`,
+      displayNumber,
+      kind: "music",
+      // 音乐档案没有文章：postId / href 留空，由 adapter 按 kind 分别校验。
+      postId: "",
+      href: "",
+      title: track.title,
+      en: track.title,
+      department: track.artist,
+      category: MUSIC_CATEGORY,
+      date: "",
+      lead: track.artist,
+      clearance: "PUBLIC",
+      abstract: `${track.title} —— ${track.artist}《${track.album}》。${
+        track.instrumental ? "纯音乐。" : "带同步歌词。"
+      }时长 ${minutes}:${seconds}。`,
+      findings: [],
+      source: "",
+      // 播放器要用的字段（数据侧原样带过来，应用只读它，不另存一份）。
+      artist: track.artist,
+      album: track.album,
+      src: track.src,
+      cover: track.cover,
+      instrumental: Boolean(track.instrumental),
+      duration: track.duration,
+      sizeMB: track.sizeMB,
+      bitrate: track.bitrate,
+      origin: track.origin,
+    });
   }
-  music = { tracks };
 } catch (error) {
   errors.push(`content/music.json：${error.message}`);
 }
@@ -242,9 +279,13 @@ if (errors.length) {
   process.exit(1);
 }
 
-// 阵列的列 = 5 个文章主题 + 影像大类。两者共用 data.ts 的 fileLocation 分列逻辑，
-// 所以影像大类就是阵列里真实的两列——顺序完全由数据决定，代码里不写死列数。
-const columns = [...collections.themes.map((theme) => theme.name), ...albumCategories];
+// 阵列的列 = 5 个文章主题 + 影像大类 + 音乐。三者共用 data.ts 的 fileLocation 分列逻辑，
+// 所以它们都是阵列里真实存在的列——顺序完全由数据决定，代码里不写死列数。
+const columns = [
+  ...collections.themes.map((theme) => theme.name),
+  ...albumCategories,
+  ...(musicCount ? [MUSIC_CATEGORY] : []),
+];
 
 await mkdir(resolve(root, ".generated"), { recursive: true });
 await writeFile(
@@ -256,7 +297,6 @@ await writeFile(
       columns,
       categories: columns,
       records,
-      music,
     },
     null,
     2,
@@ -266,9 +306,9 @@ await writeFile(
 
 const postRecords = records.filter((r) => r.kind === "post");
 const albumRecords = records.filter((r) => r.kind === "album");
+const songRecords = records.filter((r) => r.kind === "music");
 console.log(
-  `三维内容生成：${columns.length} 列（${collections.themes.length} 文章主题 + ${albumCategories.length} 影像大类）；` +
+  `三维内容生成：${columns.length} 列（${collections.themes.length} 文章主题 + ${albumCategories.length} 影像大类 + ${musicCount ? 1 : 0} 音乐）；` +
     `档案 ${records.length} 条 —— 文章 ${postRecords.length} 条（引用 ${new Set(postRecords.map((r) => r.postId)).size} 篇公开文章）、` +
-    `影像 ${albumRecords.length} 个图集（${albumImageTotal} 张）` +
-    `${music.tracks.length ? `；音乐 ${music.tracks.length} 首` : ""}。`,
+    `影像 ${albumRecords.length} 个图集（${albumImageTotal} 张）、音乐 ${songRecords.length} 首。`,
 );

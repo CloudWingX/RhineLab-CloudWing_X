@@ -96,7 +96,30 @@
 - **检查**：`check:features`（本模块暂无专属检查脚本）。
 - **行为说明**：[ALBUM.md](ALBUM.md)。
 
-### 2.4 其他新增能力（不在 `src/features/`）
+### 2.4 音乐档案播放器（`music-player`）
+
+- **职责**：放**音乐档案**（一条记录 = 一首歌）——黑胶唱片、播放控制、**LRC 同步歌词**、
+  播放参数。入口是音乐档案详情里的「播放」按钮，浮层**只放这一首**（没有曲目表、没有切歌）。
+- **目录**：`src/features/music-player/`
+  - `index.ts` 唯一入口 + 门面（懒加载、归属守卫、快照、HMR 清理）
+  - `player.ts` 浮层生命周期、播放控制、LRC 解析与同步、Blob 载入；`player.css` 样式；
+    `styles.ts` 样式懒加载入口
+- **加载方式**：按需 `import()`。播放器与其样式表都不进三维入口首屏。
+- **宿主端口** `MusicPlayerHost`：`isArchiveReady`、`isIdentityGateActive`、`currentMode`、
+  `notify`、`playSound`、`setSceneInputSuspended`，外加两个特有的：`setBackgroundMusic`
+  （打开时停掉 `/lab/` 的环境 stem、关闭时交还，否则两路声音叠加）与 `stageScale`
+  （浮层挂在 `document.body` 上、不在 `#stage` 里，需要自己乘上舞台缩放才能与系统弹框等大）。
+- **门面** `MusicPlayerFeature`：`isActive`、`ownsEvent`、`open`、`closeIfActive`、
+  `withClosed`、`snapshot`、`dispose`。
+- **数据来源**：`content/music.json` → `scripts/blog/build-lab-content.mjs` 把每首歌转成一条
+  `kind: "music"` 的**档案记录**并入 `records`（类别 `音乐`）—— 于是「音乐」是三维阵列里真实的一列，
+  与文章档案、影像档案共享选中/取景/详情/索引逻辑，只有详情模板与操作按钮按 `kind` 分叉。
+- **播放方式**：整曲取成 Blob 再播（本地 blob 天然可 seek），因此**不引入 Service Worker**
+  —— CF Pages 的静态资产不支持 Range 请求，旧站为此加了 SW，本站用 Blob 绕开。
+- **检查**：`check:features`（本模块暂无专属检查脚本）。
+- **行为说明**：[MUSIC.md](MUSIC.md)。
+
+### 2.5 其他新增能力（不在 `src/features/`）
 
 这些是构建面而不是运行时功能模块，保持原有目录：
 

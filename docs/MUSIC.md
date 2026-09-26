@@ -1,8 +1,13 @@
-# 音乐播放器（music-player）
+# 音乐档案与播放器（music-player）
 
-在 `/lab/` 的系统导航点 **♪ MUSIC**，会打开一个全屏浮层：黑胶唱片、播放控制、**同步歌词**、
-播放参数与曲目表。窗口复用三个系统弹框（ARCHIVE INDEX / SAVED / SYSTEM）以及阅读层、
-影像查看器的同一套表面，因此窗口盒、遮罩、进出动画与它们逐像素一致。
+在 `/lab/` 三维阵列里，**「音乐」是一列档案**（与 5 个文章主题列、2 个影像大类并列，共 8 列）：
+用 `←` `→` 切列走到它，按 `ENTER`／`ACCESS FILE` 打开**档案详情**，详情里点 **「播放」**
+会在原地弹出一个居中窗口放这一首歌——黑胶唱片、进度、音量、**同步歌词**与播放参数。
+窗口复用三个系统弹框（ARCHIVE INDEX / SAVED / SYSTEM）以及阅读层、影像查看器的同一套表面。
+
+> 设计演进：第一版把播放器做成导航上的独立 MUSIC 按钮（一个能放全部 4 首的播放器）。
+> 现在改成与影像档案同构——**一条档案 = 一首歌**，「音乐」作为阵列里的一列，
+> 没有独立入口按钮，浮层也**只放这一首**（没有曲目表、没有上一首/下一首）。
 
 ## 1. 曲目与数据
 
@@ -10,11 +15,11 @@
 | --- | --- |
 | 数据源 | `content/music.json`（由 `scripts/migrate-content.mjs` 从旧站 `src/site.ts` 的 `MUSIC` 数组生成） |
 | 素材 | `public/music/`：`<id>.mp3` + `covers/<id>.jpg` + `lyrics/<id>.lrc`（共约 43MB） |
-| 生成 | `scripts/blog/build-lab-content.mjs` → `.generated/lab-content.json` 的 `music.tracks`，并校验素材真实存在 |
+| 生成 | `scripts/blog/build-lab-content.mjs` 把每首歌转成一条 `kind: "music"` 的**档案记录**并入 `records`，类别为 `音乐`；同时校验音频与封面真实存在 |
 | 构建管线 | `scripts/blog/prepare-assets.mjs` 白名单加 `musicFiles("music")`（lab 的 publicDir 只收白名单，漏登记＝没声音） |
-| 适配 | `src/blog-adapter.ts`（`MusicTrack`）→ `src/data.ts`（`musicTracks`） |
+| 适配 | `src/blog-adapter.ts`（`LabMusicSlot`，判别联合的一支）→ `src/data.ts`（`musicTracks`） |
 | 模块 | `src/features/music-player/` |
-| 入口 | `src/main.ts` 的 `[data-action="open-music"]`（系统导航的 MUSIC 按钮） |
+| 入口 | 音乐档案详情里的 `[data-action="play-track"]`（由 `renderMusicDetail` 产出） |
 
 4 首曲目：#1 Evolution Era 与 #3 Wings of Piano 是**纯音乐**，#2 Into the Sky 与
 #4 星が瞬くこんな夜に 带 **LRC 歌词**。歌词**不写进 JSON** —— `lyrics/<id>.lrc` 存在即自动同步，
@@ -66,15 +71,16 @@ CF Pages 的静态资产**不支持 Range 请求**，浏览器媒体栈会把 se
 
 ## 4. 行为
 
-- **打开**：只在非 boot 模式且宿主就绪时打开；`await` 懒加载之后重新确认归属，避免竞态。
-- **切曲**：点曲目表某项 / 上一首 / 下一首。循环模式三态由 chip 循环切换：顺序 → 单曲 → 随机；
-  单曲在曲终时回到 0 重播，其余推进到下一首。
+- **打开**：只在 `mode === "detail"` 且当前档案是 `kind: "music"` 时打开；`await` 懒加载之后重新
+  确认归属。详情里的「播放」按钮语义就是播放，所以传入 `autoplay`；浏览器若拦下（没有用户手势），
+  状态栏提示「点「播放」开始」而不是报错——浮层里就有一个播放键。
+- **单曲**：只放这一首，**没有曲目表、没有上一首/下一首、没有循环模式**。
+  曲终回到开头并停下（状态显示「播放完毕」）。
 - **进度**：可拖（Blob 保证 seek 真的生效）。音量独立于终端音效与背景音乐。
 - **歌词**：按时间高亮当前行并平滑滚动到中部；纯音乐显示「纯音乐」占位，无歌词文件则显示提示。
 - **键盘**：空格 播放/暂停，`←` / `→` 前后 5 秒（焦点在输入控件上时不接管），`ESC` 关闭。
 - **关闭**：暂停播放 → 把背景 stem 交还 → 焦点归还入口按钮。退出动效有 600ms 兜底
   （动效完成回调来自 `animation.finished`，被节流的合成器可能永远不推进它）。
-- **关闭后不保留播放**：本版没有常驻迷你栏，关掉浮层就没有控制入口，所以关闭即暂停。
 
 ## 5. 验证
 

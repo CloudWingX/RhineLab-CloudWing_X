@@ -8,13 +8,13 @@
  *   这些能力通过下面的宿主端口按需借用，因此移除本模块不会牵动核心。
  * - 播放器代码与样式表按需加载，三维入口首屏不为它付费。
  */
-import type { MusicTrack } from "../../blog-adapter";
+import type { LabMusicSlot } from "../../blog-adapter";
 import type { MusicPlayer } from "./player";
 
-/** /lab/ 系统导航里触发播放器的按钮标记。 */
-export const MUSIC_ENTRY_SELECTOR = '[data-action="open-music"]';
+/** 档案详情里触发播放的按钮标记（由音乐档案的详情模板产出）。 */
+export const MUSIC_ENTRY_SELECTOR = '[data-action="play-track"]';
 
-export type { MusicTrack };
+export type { LabMusicSlot };
 
 /** 宿主（三维档案应用）向播放器提供的最小能力集。 */
 export interface MusicPlayerHost {
@@ -43,7 +43,6 @@ export interface MusicPlayerHost {
 export interface MusicPlayerSnapshot {
   active: boolean;
   track: string | null;
-  index: number;
   playing: boolean;
   moduleLoaded: boolean;
 }
@@ -54,8 +53,13 @@ export interface MusicPlayerFeature {
   isActive(): boolean;
   /** 事件是否发生在播放器子树内。 */
   ownsEvent(event: Event): boolean;
-  /** 打开播放器；entry 用于关闭后归还焦点。 */
-  open(tracks: MusicTrack[], entry: HTMLElement | null, reduced: boolean): void;
+  /** 播放某条音乐档案；entry 用于关闭后归还焦点。 */
+  open(
+    track: LabMusicSlot,
+    entry: HTMLElement | null,
+    reduced: boolean,
+    autoplay?: boolean,
+  ): void;
   /** 上下文切换：静默关闭，不把焦点还给入口按钮。 */
   closeIfActive(): void;
   /** 先关闭播放器再执行动作（模态、重播、场景切换）。 */
@@ -105,7 +109,12 @@ export function createMusicPlayerFeature(host: MusicPlayerHost): MusicPlayerFeat
     return modulePending;
   }
 
-  function open(tracks: MusicTrack[], entry: HTMLElement | null, reduced: boolean): void {
+  function open(
+    track: LabMusicSlot,
+    entry: HTMLElement | null,
+    reduced: boolean,
+    autoplay = false,
+  ): void {
     if (host.isIdentityGateActive() || !host.isArchiveReady()) return;
     if (host.currentMode() === "boot") return;
     void ensure()
@@ -113,12 +122,12 @@ export function createMusicPlayerFeature(host: MusicPlayerHost): MusicPlayerFeat
         // await 之后重新确认归属：用户可能已经离开或又开了别的浮层。
         if (host.currentMode() === "boot") return;
         if (instance.isActive) return;
-        if (!instance.open(tracks, reduced)) {
-          host.notify("没有可播放的曲目。");
+        if (!instance.open(track, reduced, autoplay)) {
+          host.notify("这条音乐档案没有可播放的音源。");
           return;
         }
         opener = entry;
-        lastTrack = tracks[0]?.id ?? null;
+        lastTrack = track.id;
         host.setSceneInputSuspended(true);
         // 先把环境 stem 停掉，再开始播曲目。
         host.setBackgroundMusic(false);
@@ -142,7 +151,6 @@ export function createMusicPlayerFeature(host: MusicPlayerHost): MusicPlayerFeat
     return {
       active: isActive(),
       track: player?.currentTrackId ?? lastTrack,
-      index: player?.currentIndex ?? 0,
       playing: player?.isPlaying ?? false,
       moduleLoaded: Boolean(player),
     };

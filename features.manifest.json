@@ -109,7 +109,6 @@
       "reviewContract": [
         "active",
         "track",
-        "index",
         "playing",
         "moduleLoaded"
       ],
