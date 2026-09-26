@@ -175,6 +175,15 @@ const fromOverlaySurface = (event: Event) =>
 /** 无身份门时的固定署名。正式的品牌替换在后续统一处理。 */
 const GUEST_LABEL = "CLOUDWING_X";
 
+/**
+ * 博客首页的站内路径。
+ *
+ * ★必须与 `scripts/blog/build-redirects.mjs` 的站级重写保持一致★：站点根 `/` 现在是
+ * 「200 rewrite 到 `/lab/`」（开屏直接进三维终端），博客首页因此搬到了 `/blog/`。
+ * 两处只有一处改路径的话，设置里的这个入口就会 404（或反过来，根不再进终端）。
+ */
+const BLOG_HOME = "/blog/";
+
 let frozenTime =
   import.meta.env.DEV && reviewParams.get("freeze") === "1"
     ? Number(reviewParams.get("time") ?? 0)
@@ -854,7 +863,7 @@ function motionPreferenceNoteMarkup() {
   return `<div id="motion-preference-note" class="motion-preference-note"><p>${motionSummary(prefs.motion)}</p><span>预设：${preset === "full" ? "完整动画" : preset === "reduced" ? "减少动画" : "自定义"} · 选择会保存在本站</span>${allEnabled ? "" : '<button data-action="enable-motion">启用完整动画并重播 ↻</button>'}</div>`;
 }
 function settingsMarkup() {
-  return `<h2>SYSTEM SETTINGS<small>终端偏好设置</small></h2><p class="settings-intro">访客浏览 <span>·</span> 收藏按本设备保存</p><div class="settings-list">${themeSettingsMarkup(prefs.colorTheme)}${audioSettingsMarkup(prefs)}</div>${motionPreferenceNoteMarkup()}${motionSettingsMarkup(prefs.motion, prefs.motionPreset)}${qualityMarkup(prefs.rendering)}${pwaSettingsMarkup()}<div class="settings-shortcuts"><span>KEYBOARD CONTROLS</span><p><kbd>←</kbd><kbd>→</kbd> 切列 <kbd>↑</kbd><kbd>↓</kbd> 选档 <kbd>ENTER</kbd> 读取 <kbd>/</kbd> 检索 <kbd>ESC</kbd> 返回</p></div><div class="settings-bottom">${document.fullscreenEnabled ? '<button data-action="fullscreen">FULLSCREEN <span>↗</span></button>' : ''}<button data-action="restart">REINITIALIZE SYSTEM <span>↻</span></button></div><div class="modal-bottom"><span>ANALYSIS OS / 1.0 · 字体 MiSans（小米，允许免费商用与网页嵌入）与 JetBrains Maple Mono（OFL-1.1） · <a href="${assetUrl("fonts/MiSans-license.pdf")}" target="_blank" rel="noopener">许可 A</a> / <a href="${assetUrl("fonts/JetBrains-Maple-Mono-OFL.txt")}" target="_blank" rel="noopener">许可 B</a></span><span>POWERED BY CLOUDWING</span></div>`;
+  return `<h2>SYSTEM SETTINGS<small>终端偏好设置</small></h2><p class="settings-intro">访客浏览 <span>·</span> 收藏按本设备保存</p><div class="settings-list">${themeSettingsMarkup(prefs.colorTheme)}${audioSettingsMarkup(prefs)}</div>${motionPreferenceNoteMarkup()}${motionSettingsMarkup(prefs.motion, prefs.motionPreset)}${qualityMarkup(prefs.rendering)}${pwaSettingsMarkup()}<div class="settings-shortcuts"><span>KEYBOARD CONTROLS</span><p><kbd>←</kbd><kbd>→</kbd> 切列 <kbd>↑</kbd><kbd>↓</kbd> 选档 <kbd>ENTER</kbd> 读取 <kbd>/</kbd> 检索 <kbd>ESC</kbd> 返回</p></div><div class="settings-bottom"><button data-action="blog-home" title="博客首页" aria-label="返回博客首页">BLOG HOME <span>↗</span></button>${document.fullscreenEnabled ? '<button data-action="fullscreen">FULLSCREEN <span>↗</span></button>' : ''}<button data-action="restart">REINITIALIZE SYSTEM <span>↻</span></button></div><div class="modal-bottom"><span>ANALYSIS OS / 1.0 · 字体 MiSans（小米，允许免费商用与网页嵌入）与 JetBrains Maple Mono（OFL-1.1） · <a href="${assetUrl("fonts/MiSans-license.pdf")}" target="_blank" rel="noopener">许可 A</a> / <a href="${assetUrl("fonts/JetBrains-Maple-Mono-OFL.txt")}" target="_blank" rel="noopener">许可 B</a></span><span>POWERED BY CLOUDWING</span></div>`;
 }
 
 document.addEventListener("input", (e) => {
@@ -1051,6 +1060,8 @@ document.addEventListener("click", (e) => {
     openModal(action);
   }
   if (action === "close-modal") closeModal();
+  // 开屏即三维终端（根 `/` 是 200 rewrite 到 `/lab/`），博客首页改从这里进。
+  if (action === "blog-home") location.assign(BLOG_HOME);
   if (action === "bookmark") toggleSaved();
   if (action === "reset-search") {
     modal = "search";
