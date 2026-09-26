@@ -111,6 +111,32 @@ git push -u origin migration/cloudwing
   `apps/blog/src/pages/blog/index.astro → ../layouts/BaseLayout.astro`，退出码非 0。
 - 顺带更正：BUILD.md §2 之前写"六步"且漏登记了 `build:redirects` —— 构建链其实早就是七步，现在是八步。
 
+### 3.4 修复：档案下载缺失、影集/曲目不能收藏、收藏重复（2026-09-26）
+
+站长报的三个 bug，根因集中在两处：本基座把上游的「导出档案」换成了「阅读全文」，
+而**收藏的键**在内容迁移时从槽位编号被改成了文章 id。
+
+1. **档案下载没了** —— 上游 RhineLabUI 每个档案一份可下载的 TXT
+   （`public/archives/RHINE-LAB-<id>.txt`，`npm run export:archives` 生成，详情面板 `EXPORT ↓`）。
+   本基座把它换成「阅读全文」并删掉了生成脚本（`check-site.mjs` 里还留着"演示档案已退役"的断言）。
+   → 新增 `scripts/blog/export-archives.mjs`：文章槽位各一份 `CLOUDWING-<id>.txt`（版式照上游
+   `archiveText`）、去重后的图集各一个 `<图集名>-images.zip`（**自写的 STORE ZIP** —— 仓库里没有
+   压缩库，而影像本来就是已压缩的 webp/jpg；包内含影像 + 一份图集记录）、音乐档案直接下 mp3。
+   ★ZIP 按图集而不是按槽位★：一个图集占多个槽位，按槽位打包会重复好几遍（约 48MB → 15.9MB）。
+2. **影集/曲目不能收藏** —— 详情操作区只给了它们各自的操作按钮，而 `saved` 按 `postId` 存，
+   对它们恒为空串。→ 三类都补上收藏（文案按 kind：收藏文章 / 收藏影像 / 收藏曲目）。
+3. **收藏一个档案却出现多份** —— 仍是按 `postId` 存所致：**一篇文章在阵列里占多个槽位**
+   （实测 11 篇各占 2–4 个），收藏页就把每个槽位都列一遍。上游本来就是按**槽位编号**存的
+   （`saved.has(r.id)`）→ 改回槽位编号，并对旧的 postId 值做了一次迁移。
+
+**沙箱验证**：`tsc` 0 报错，`check:imports` / `check:content` / `check:features` 通过；
+导出产物 **45 个文件（40 TXT + 5 ZIP，15.9 MB）**，5 个 ZIP 全部通过 python `zipfile` 的 CRC 校验；
+把详情面板会生成的 **64 个下载 URL 逐个落地核对、0 失败**；`prepare:assets` 实测把 45 个文件
+暂存进了 `.generated/lab-public/archives/`。⚠️ 浏览器里真的点下载、以及三项收藏行为，仍需真机确认。
+
+**顺带对齐**：`build-lab-content.mjs` 的 origin 默认值原本是 `example.com`，而站点与
+`astro.config.mjs` 的默认是 `cloudwing.top` —— 导出的 TXT 里"原文链接"因此指向 example.com，已改齐。
+
 ## 4. 未完成
 
 1. **还有三个功能没搬**（旧站 13 条路由对照）：

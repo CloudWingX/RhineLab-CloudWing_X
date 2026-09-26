@@ -21,7 +21,10 @@
 | 5 | `npm run build:lab` | Vite 构建 `/lab/` 到 `dist/lab/`（阅读层与它的 CSS 为独立懒加载 chunk） |
 | 6 | `npm run build:redirects` | 生成 `dist/_redirects`（消费 `legacyUrls` + 站级规则，含根路径的 200 rewrite） |
 | 7 | `npm run search:index` | Pagefind 生成全文检索索引到 `dist/pagefind/` |
-| 8 | `npm run check:site` | 产物完整性、未公开内容泄露、`/lab/` 边界、404 与 RSS/sitemap |
+| 8 | `npm run check:site` | 产物完整性、未公开内容泄露、`/lab/` 边界、404 与 RSS/sitemap、档案下载件 |
+
+其中 `generate:lab-content`（构建链开头、以及 `prepare:assets` 里都会跑）除了生成三维内容目录，
+还会生成档案下载件（`scripts/blog/export-archives.mjs`，见 §4）。
 
 单独执行某一步：
 
@@ -61,6 +64,9 @@ npm run preview 8080       # 指定端口
 并会清理托管子树中不在白名单里的旧字体文件。因此：
 
 - 新增需要发布的静态资源，要同时加入 `scripts/blog/prepare-assets.mjs` 的白名单；
+  （档案下载件 `public/archives/` 就是这种：它整棵由 `scripts/blog/export-archives.mjs` 生成、
+  不入库，靠白名单原样收录。**漏登记的症状是详情面板的导出按钮 404** —— lab 的 publicDir
+  每次构建都会重建，不在白名单里的会被 `rm` 掉。）
 - 反向代理、CDN 或子路径部署时，必须保证 CSS 字体、GLB、图标与 HTML 链接都被覆盖。
 
 ## 5. 打包与发布

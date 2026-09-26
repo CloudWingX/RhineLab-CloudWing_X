@@ -19,7 +19,9 @@
 | 构建管线 | `scripts/blog/prepare-assets.mjs` 白名单加 `musicFiles("music")`（lab 的 publicDir 只收白名单，漏登记＝没声音） |
 | 适配 | `src/blog-adapter.ts`（`LabMusicSlot`，判别联合的一支）→ `src/data.ts`（`musicTracks`） |
 | 模块 | `src/features/music-player/` |
-| 入口 | 音乐档案详情里的 `[data-action="play-track"]`（由 `renderMusicDetail` 产出） |
+| 入口 | 音乐档案详情里的 `[data-action="play-track"]`（由 `renderDetail` 的 music 分支产出） |
+| 下载 | 同一个操作区的 `AUDIO ↓` —— 直接下载 `/lab/music/<id>.mp3`，**不生成额外文件** |
+| 收藏 | 同一个操作区的收藏按钮（三类档案通用，按**槽位编号**存） |
 
 4 首曲目：#1 Evolution Era 与 #3 Wings of Piano 是**纯音乐**，#2 Into the Sky 与
 #4 星が瞬くこんな夜に 带 **LRC 歌词**。歌词**不写进 JSON** —— `lyrics/<id>.lrc` 存在即自动同步，

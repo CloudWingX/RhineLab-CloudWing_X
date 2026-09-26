@@ -17,6 +17,8 @@
 | 一个档案 = 一个小类（图集） | 一条 `kind: "album"` 的档案记录，例如 `X-042`（Peak） |
 | 档案记录页面 | `#detail-ui` 档案详情面板（`renderDetail` → 影像分支，与文章/音乐**共用同一版式**） |
 | 查看详情按钮 | 详情面板操作区的 `[data-action="open-album-viewer"]` |
+| 下载入口 | 同一个操作区的 `IMAGES ↓` —— 该图集**整包影像的 ZIP**（构建期生成） |
+| 收藏 | 同一个操作区的收藏按钮（三类档案通用，按**槽位编号**存） |
 | 图像界面 | 本模块的居中浮层 |
 
 阵列的列顺序 = `lab-content.json` 的 `columns`：`技术笔记 / 建站日志 / 更新档案 / 版本演进 / 归档总览 /
@@ -45,6 +47,7 @@
 | 数据源 | `content/gallery.json` |
 | 大类划分表（显式） | `scripts/migrate-content.mjs` 的 `ALBUM_CATEGORIES` |
 | 生成 | `scripts/blog/build-lab-content.mjs` → `.generated/lab-content.json` 的 `records` + `columns` + `albumImages` |
+| 档案下载件 | `scripts/blog/export-archives.mjs` → `public/archives/<图集名>-images.zip`（构建期生成，不入库；由 `prepare:assets` 白名单暂存进 `/lab/archives/`） |
 | 适配与校验 | `src/blog-adapter.ts`（`LabPostSlot` / `LabAlbumSlot` / `LabMusicSlot` 判别联合，按 `kind` 分别校验；影像档用 `albumKey` 到 `albumImages` 取图片并挂成共享引用） |
 | 聚合导出 | `src/data.ts`（`records` / `albums` / `albumCategories` / `categories` / `archiveColumns`） |
 | 轮播泳道 | `src/archive-loop.ts`（`CONTENT_COLUMNS` / `LOOP_COLUMNS` 由列数推导；**`LANE_CENTER` 固定是参考阵列（原片 5 列）的中心 2，不随列数变**） |
