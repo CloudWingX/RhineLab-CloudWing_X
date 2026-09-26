@@ -14,9 +14,33 @@
 | 项目配置 | `wrangler.toml` | 项目名 + 产物目录 + `npx wrangler pages dev dist` 本地预览 |
 | 站点 origin | `apps/blog/astro.config.mjs` | 默认 `https://cloudwing.top`（`BLOG_SITE_ORIGIN` 可覆盖） |
 
-★`git remote` 要先理清★：本仓库的 `origin` **指向上游模板**，照 HANDOFF §2 改成自己的
-（`git remote rename origin upstream` → `git remote add origin <你的仓库>` → `git push -u origin migration/cloudwing`）。
-CF Pages 的 Git 集成要从**你自己的仓库**拉。
+★`git remote` 已经理清★：`origin` = 本项目的仓库，`upstream` = 上游模板且 **push 地址被改成
+`DISABLED_UPSTREAM_IS_READ_ONLY`**（照模板 `ops/setup-remotes.sh` 的做法，物理上推不上去）。
+CF Pages 的 Git 集成要从 `origin` 拉。
+
+## 1.5 仓库：★先确认私有，再推★
+
+项目仓库：`https://github.com/CloudWingX/CloudWing_X`（`origin`）。
+
+**这个仓库必须保持私有。** 因为下列素材**都是 CF 构建必需的输入**（构建链要把它们复制进产物，
+所以拿不掉），而 HANDOFF §10 写明它们「不随站点授权，仅站内使用」：
+
+| 素材 | 位置 | 体量 |
+| --- | --- | --- |
+| 游戏影像（截图） | `apps/blog/public/shots/` | 132 张 / 17 MB |
+| 商业发行曲目 | `public/music/` | 4 首 / 约 42 MB（V.K克 / SawanoHiroyuki[nZk] / supercell） |
+| 产品商标图标 | `apps/blog/public/nav/` | 21 个 |
+
+推到公开仓库 = **公开再分发**这些内容。★顺序是"先切私有、再 push"★ —— 推出去的内容会进
+GitHub 的缓存与可能的 fork，事后改可见性收不干净。
+（Cloudflare Pages 支持从私有仓库构建，部署不受影响。）
+
+```bash
+git push -u origin migration/cloudwing    # 这个分支会成为默认分支
+```
+
+★私有仓库还要在 CF 的 GitHub App 里授权★：控制台建项目时选 GitHub —— 若仓库列表里看不到它，
+去 GitHub 的 Settings → Applications → Cloudflare Pages，把该仓库加进授权范围。
 
 ## 2. 控制台要设的三项
 
