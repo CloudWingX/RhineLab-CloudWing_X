@@ -39,7 +39,7 @@ legacyUrls:
 | `id` | **稳定身份**。发布后不要因标题或排序改动；导入文章可沿用 `wp-<数字>`，新文建议 `post-<短标识>` |
 | `title` | 非空；用于页面标题、分享卡片与三维卡片 |
 | `description` | 非空，≤300 字；用于列表摘要、搜索与分享描述 |
-| `path` | 唯一规范站内路径；**不得**与 `/lab/`、`/tags/`、`/categories/`、`/search/`、`/archive/`、`/rss.xml` 等系统路由冲突 |
+| `path` | 唯一规范站内路径；**不得**与 `/lab/`、`/blog/`、`/tags/`、`/categories/`、`/search/`、`/archive/`、`/rss.xml` 等系统路由冲突 |
 | `publishedAt` / `updatedAt` | 带时区的 ISO 8601。`publishedAt` 晚于构建时间的内容视为未来文章，不进入任何公开产物 |
 | `draft` | `true` 时不进入 HTML、JS/JSON、RSS、sitemap、搜索索引与 TXT |
 | `categories` / `tags` | 字符串数组；分类驱动分类页与三维主题，标签只影响标签页与搜索 |
@@ -74,6 +74,9 @@ npm run preview          # 静态预览，未知路径返回真实 404
 - `path` 是规范地址，发布后应保持稳定；确需变更时，把旧地址写进该文的 `legacyUrls`，并保证
   旧地址仍能跳到新地址（一对一），未知路径必须返回**真实 404**，不要做全站跳首页。
 - 删除文章意味着它的地址失效；如果它被外部链接引用，建议先保留页面并标注归档，再决定是否移除。
+- **站点入口**：根路径 `/` 是 `_redirects` 的 200 rewrite（由三维终端直接作答、地址栏保持 `/`），
+  博客首页在 `/blog/`。所以 `/` 不是可以写进 `path` 的地址；三维终端设置里那个「BLOG HOME」入口
+  指向的就是 `/blog/`。
 - 中文路径可用，但以百分号编码出现在 URL 中；如需可复制的英文地址，直接用英文 slug 作为 `path`。
 
 ## 6. 三维主题映射
@@ -93,7 +96,7 @@ npm run preview          # 静态预览，未知路径返回真实 404
 | 现象 | 原因与处理 |
 | --- | --- |
 | `frontmatter YAML 解析失败` | 值里有 `: ` 且未加引号；见 §2 的易错点 |
-| `路径与系统路由冲突` | `path` 撞上了 `/lab/`、`/search/` 等保留前缀，换一个 |
+| `路径与系统路由冲突` | `path` 撞上了 `/lab/`、`/blog/`、`/search/` 等保留前缀，换一个 |
 | `封面不存在` | `cover` 指向的文件不在 `apps/blog/public` 下，或路径大小写不符 |
 | 草稿出现在产物里 | 检查 `draft` 与 `publishedAt`；`check:site` 会直接报出泄漏的文件名 |
 | 中文标点后的 `**加粗**` 不生效 | 确认 `apps/blog/astro.config.mjs` 仍启用 `remark-cjk-friendly` |

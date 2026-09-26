@@ -37,7 +37,7 @@ legacyUrls:
 | `id` | 稳定身份。发布后不因标题或排序变化重建；建议用 `post-<稳定短标识>` |
 | `title` | 非空 |
 | `description` | 非空，最多 300 字，用于列表、搜索与分享 |
-| `path` | 唯一规范站内路径；不得与 `/lab/`、`/tags/`、`/categories/`、`/search/`、`/archive/`、RSS 等系统路由冲突 |
+| `path` | 唯一规范站内路径；不得与 `/lab/`、`/blog/`、`/tags/`、`/categories/`、`/search/`、`/archive/`、RSS 等系统路由冲突 |
 | `publishedAt` / `updatedAt` | 带时区的 ISO 8601；晚于构建时间或 `draft: true` 的内容不进入任何公开产物 |
 | `categories` / `tags` | 字符串数组 |
 | `cover` | 可选，站内路径时必须是 `apps/blog/public` 下真实存在的文件 |

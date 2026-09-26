@@ -66,7 +66,7 @@ npm run preview         # 静态 dist/ 预览，未知路径返回真实 404
 1. 编辑 `content/posts/*.md` 与 `content/pages/*.md`，按 [content/README.md](content/README.md) 填写 frontmatter。
 2. 在 `content/lab-collections.json` 里把主题槽位指向你自己的文章 `id`。
 3. 站点 origin 通过环境变量 `BLOG_SITE_ORIGIN` 指定（默认值见 `apps/blog/astro.config.mjs`）。
-4. 站名、作者与页脚在 `apps/blog/src/layouts/BaseLayout.astro`、`apps/blog/src/pages/index.astro` 与
+4. 站名、作者与页脚在 `apps/blog/src/layouts/BaseLayout.astro`、`apps/blog/src/pages/blog/index.astro` 与
    `apps/blog/src/content/schema.mjs` 的 `author` 默认值中调整。
 5. 如需备案信息，按 `BaseLayout.astro` 页脚注释处填回自己的备案号（模板默认不含任何备案号与图标）。
 

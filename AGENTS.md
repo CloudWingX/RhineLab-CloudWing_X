@@ -82,7 +82,7 @@ TypeScript / Three.js 三维界面作为独立的 `/lab/` 入口。
 - 分离稳定文章 ID、文件名、规范 path 与三维槽位。`id` 是身份，发布后不因标题或排序变化而重建。
 - `publishedAt` 晚于构建时间或 `draft: true` 的内容**不得**出现在 HTML、JS/JSON、RSS、sitemap、
   搜索索引或 TXT 中；所有公开产物走统一公开过滤函数并使用同一 `BUILD_NOW`。
-- `path` 唯一且不得与 `/lab/`、`/tags/`、`/categories/`、`/search/`、`/archive/`、RSS 等系统路由冲突。
+- `path` 唯一且不得与 `/lab/`、`/blog/`、`/tags/`、`/categories/`、`/search/`、`/archive/`、RSS 等系统路由冲突。
 - 公开 Git 仓库本身不能保护草稿；需保密的正文不要放进本仓库。
 - 三维主题为五个策展主题、每主题八个虚拟槽位；空主题为不可选装饰/空状态，不制造假文章。
 

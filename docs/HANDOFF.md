@@ -25,7 +25,7 @@ git remote add origin <你自己的仓库地址>
 git push -u origin migration/cloudwing
 ```
 
-## 3. 已完成（下表为上一轮的功能提交，从新到旧；本轮的 4 个见 §3.1）
+## 3. 已完成（下表为上一轮的功能提交，从新到旧；本轮的提交见 §3.1 / §3.2）
 
 | 提交 | 做了什么 |
 | --- | --- |
@@ -77,6 +77,25 @@ git push -u origin migration/cloudwing
 生成器重跑输出「每列 8 槽 / 64 条」；17 条断言全过（原点 = 2、无写死原点、每列 8 槽、8 \| 32、
 同一图集共享 `images` 引用、总数仍是 132、页签结构就位）。**`npm run build` 与浏览器目视未做**（见 §6）。
 
+### 3.2 站点入口改成三维终端（2026-09-26）
+
+站长定：**开屏直接进三维终端**，博客首页搬进 `/blog/`，终端设置里给一个回博客的入口。
+
+- `apps/blog/src/pages/index.astro` → `pages/blog/index.astro`（博客首页 = `/blog/`）。
+- `_redirects` 加站级规则 **`/ /lab/ 200`** —— ★200 是 rewrite：用终端的内容作答、**地址栏保持 `/`**★，
+  不是 301。生成器 `build-redirects.mjs` 因此支持逐条状态码（原来写死 301）。
+- 引导链接改到 `/blog/`：`BaseLayout` 的站名、`404.astro`、终端的 `<noscript>`。
+- 三维终端设置弹框底部加 `BLOG HOME`（`data-action="blog-home"` → `location.assign("/blog/")`）。
+  ★它必须与 `_redirects` 的规则同源★ —— `src/main.ts` 里 `BLOG_HOME` 的注释写明了这点。
+- `check-site.mjs`：`/` 的断言改到 `blog/index.html`，并**新增守卫**：`dist/index.html` 不得存在
+  （200 让位于静态文件，有文件 rewrite 就不生效）。
+- `preview.mjs`：**新增 `_redirects` 支持** —— 此前它根本不读，本地访问 `/` 会 404，
+  而它自称"与线上一致"。顺带删掉 auth 时代遗留的 `/api/auth/*` 假响应（上一轮清残留漏掉的代码路径）。
+- 内容契约：`RESERVED_PATH_PREFIXES` 加 `/blog`，防止内容的 `path` 撞上首页路由。
+- **实测（沙箱）**：`build-redirects` 在 `dist/index.html` 存在时**按预期失败**（守卫说明写对了），
+  移开后生成 `/ /lab/ 200`；`preview` 下 `/` → 200 且是终端、`/posts/` 与 `/log/` → 301。
+  ⚠️ 版本渲染、入口是否真的进终端，仍需真机确认（见 §5）。
+
 ## 4. 未完成
 
 1. **还有三个功能没搬**（旧站 13 条路由对照）：
@@ -89,6 +108,8 @@ git push -u origin migration/cloudwing
    `scripts/blog/build-redirects.mjs` 的 `PENDING`）。
 3. **从未部署**：CF Pages 的配置（`wrangler.toml`、`_headers`、`_redirects`）都在仓库里备好了，
    但控制台还没建项目。部署前**必须先处理 `/gallery/` 与 `/music/`**，否则旧地址会 404。
+   另外注意 **`/` 现在是 200 rewrite 到 `/lab/`**（§3.2）：部署后在线上确认根路径确实进终端，
+   且 `/blog/` 是博客首页。
 4. **延后项**：双环标志与开场字形表的重做（站长定"等网页完成后再说"）。
 
 ## 5. ⚠️ 待真机确认（沙箱里验不了的两处）
