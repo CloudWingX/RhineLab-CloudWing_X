@@ -38,3 +38,11 @@
 
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
+
+# ★终端入口要单独给规则★：`/`（200 rewrite 到 /lab/）与 `/lab/` 的**请求路径里没有 .html**，
+# 上面那条 `/*.html` 盖不住它们 —— 而这两条正是三维终端的入口，被缓存住就会出现"部署后还看到旧界面"。
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/lab/
+  Cache-Control: public, max-age=0, must-revalidate

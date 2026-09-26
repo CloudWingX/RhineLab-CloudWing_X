@@ -129,6 +129,7 @@ ssh root@203.0.113.10 "DEPLOY_ROOT=/srv/example-blog bash /srv/example-blog/ops/
 ## 9. 相关文档
 
 - [docs/README.md](README.md)：文档索引
+- [DEPLOY-CF.md](DEPLOY-CF.md)：**部署到 Cloudflare Pages** 的操作步骤与部署后核对清单
 - [AUTHORING.md](AUTHORING.md)：写作与内容维护
 - [../BLOG-MAINTAIN-PERFECT.md](../BLOG-MAINTAIN-PERFECT.md)：维护手册（含备份、监控与安全约束）
 - [../ops/upload.env.example](../ops/upload.env.example)：部署配置项示例

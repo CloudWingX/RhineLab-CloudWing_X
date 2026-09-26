@@ -14,6 +14,7 @@
 | [HANDOFF.md](HANDOFF.md) | **交接记录**：项目现状、提交清单与未完成项、待真机确认的两处、构建与验证、环境约束、关键文件地图 |
 | [AUTHORING.md](AUTHORING.md) | 写作与内容维护：目录约定、frontmatter 字段、草稿与未来文章、URL 与重定向、三维主题映射、常见问题 |
 | [BUILD.md](BUILD.md) | 构建与发布：环境准备、构建顺序、本地预览、资源白名单、release 打包与激活、回滚、健康检查、排障 |
+| [DEPLOY-CF.md](DEPLOY-CF.md) | **部署到 Cloudflare Pages**：控制台要设的三项、部署前必须真机跑通构建、以及部署后的逐项核对清单 |
 | [READER.md](READER.md) | 沉浸式全文阅读：模块职责、页面契约、窗口与布局参数、控件与目录导航、内容白名单与安全、滚动恢复、验证命令 |
 | [NAV.md](NAV.md) | 网站导航：作为**一个列**（大类）进三维阵列、列里的档案是分组、站点目录浮层、图标自托管的约束、旧 `/nav/` 的 301 |
 | [CALENDAR.md](CALENDAR.md) | 日历页：三份数据来源、为什么自写农历换算（GPL 规避）与逐日对拍、窗口边界、每年要改的一处 |
@@ -28,7 +29,8 @@
 
 - **要写文章**：[AUTHORING.md](AUTHORING.md) → [content/README.md](../content/README.md)
 - **刚接手这个项目**：[HANDOFF.md](HANDOFF.md) → [FEATURES.md](FEATURES.md) → [BUILD.md](BUILD.md)
-- **要部署上线**：[BUILD.md](BUILD.md) → [BLOG-MAINTAIN-PERFECT.md](../BLOG-MAINTAIN-PERFECT.md)
+- **要部署上线**：[DEPLOY-CF.md](DEPLOY-CF.md)（CF Pages）→ [BUILD.md](BUILD.md) →
+  [BLOG-MAINTAIN-PERFECT.md](../BLOG-MAINTAIN-PERFECT.md)
 - **要增删功能模块**：[FEATURES.md](FEATURES.md) → [src/features/README.md](../src/features/README.md)
 - **要改阅读层**：[READER.md](READER.md) → `src/features/reader/` 与 `scripts/reading/`
 - **要改影像档案（图集）**：[ALBUM.md](ALBUM.md) → `src/features/album-viewer/` 与
