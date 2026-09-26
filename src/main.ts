@@ -46,6 +46,7 @@ import { loadBootWebfonts } from "./boot-lettering";
 import { createReaderFeature, READER_ENTRY_SELECTOR } from "./features/reader";
 import { createAlbumViewerFeature } from "./features/album-viewer";
 import { createMusicPlayerFeature } from "./features/music-player";
+import { createSiteViewerFeature } from "./features/site-viewer";
 
 const $ = <T extends HTMLElement = HTMLElement>(selector: string) =>
   document.querySelector<T>(selector)!;
@@ -154,15 +155,32 @@ const musicPlayerFeature = createMusicPlayerFeature({
   stageScale: () => stageScaleValue,
 });
 
+// --- 网站导航（站点目录）浮层（功能模块：src/features/site-viewer/）---
+// 与阅读层 / 影像查看器 / 音乐播放器同构：卡片墙、焦点所有权都在模块内部；这里只装配宿主端口。
+// 「网站导航」在阵列里是一列（一个大类），列里的每条档案 = 一个分组，这个浮层列出分组里的站点。
+const siteViewerFeature = createSiteViewerFeature({
+  isArchiveReady: () => ready,
+  isIdentityGateActive: () => identityActive(),
+  currentMode: () => mode,
+  notify: (message) => notify(message),
+  playSound: (name) => audio.play(name),
+  setSceneInputSuspended: (value) => scene?.setInputSuspended(value),
+  stageScale: () => stageScaleValue,
+});
+
 // 顶层浮层的统一判断：阅读层、影像查看器与音乐播放器都挂在 document.body 上，
 // 都拥有焦点与输入锁。核心在这些判断上只关心"有没有浮层占屏"，所以合并判断，
 // 避免每加一个浮层就要在十余处逐一追加。
 const overlayActive = () =>
-  readerFeature.isActive() || albumViewerFeature.isActive() || musicPlayerFeature.isActive();
+  readerFeature.isActive() ||
+  albumViewerFeature.isActive() ||
+  musicPlayerFeature.isActive() ||
+  siteViewerFeature.isActive();
 const fromOverlaySurface = (event: Event) =>
   readerFeature.ownsEvent(event) ||
   albumViewerFeature.ownsEvent(event) ||
-  musicPlayerFeature.ownsEvent(event);
+  musicPlayerFeature.ownsEvent(event) ||
+  siteViewerFeature.ownsEvent(event);
 
 // --- 启动身份门已移除 ---
 // 上游这个模板在序幕之前加了一层「身份门 / 登录注册」功能（src/features/auth/）。
@@ -587,6 +605,7 @@ function openFile() {
 function savedActionLabel(kind: ArchiveRecord["kind"]) {
   if (kind === "album") return { en: "＋ SAVE IMAGES", cn: "收藏影像" };
   if (kind === "music") return { en: "＋ SAVE TRACK", cn: "收藏曲目" };
+  if (kind === "siteGroup") return { en: "＋ SAVE GROUP", cn: "收藏分组" };
   return { en: "＋ SAVE ARTICLE", cn: "收藏文章" };
 }
 
@@ -618,6 +637,8 @@ const TAB_LABELS: Record<ArchiveRecord["kind"], [string, string, string]> = {
   post: ["概述", "研究记录", "访问日志"],
   album: ["概述", "收录影像", "访问日志"],
   music: ["概述", "播放参数", "访问日志"],
+  // 分组没有"研究记录"这种东西：第二页签放它收录的站点清单
+  siteGroup: ["概述", "收录站点", "访问日志"],
 };
 const TAB_KEYS = ["overview", "notes", "history"] as const;
 
@@ -643,6 +664,9 @@ function detailMetadata(r: ArchiveRecord) {
   if (r.kind === "album") {
     return `<dl class="metadata"><div><dt>CATEGORY / 大类</dt><dd>${escapeHtml(r.category)}</dd></div><div><dt>VOLUME / 收录</dt><dd>${r.count} 张影像</dd></div><div><dt>PERIOD / 时间跨度</dt><dd>${escapeHtml(r.dateFrom)} → ${escapeHtml(r.dateTo)}</dd></div><div><dt>STATUS / 状态</dt><dd><i></i>已归档 · 可读取</dd></div></dl>`;
   }
+  if (r.kind === "siteGroup") {
+    return `<dl class="metadata"><div><dt>CATEGORY / 大类</dt><dd>${escapeHtml(r.category)}</dd></div><div><dt>SITES / 收录</dt><dd>${r.count} 个站点</dd></div><div><dt>HINT / 说明</dt><dd>${escapeHtml(r.hint || "—")}</dd></div><div><dt>STATUS / 状态</dt><dd><i></i>已归档 · 可读取</dd></div></dl>`;
+  }
   if (r.kind === "music") {
     const minutes = Math.floor(r.duration / 60);
     const seconds = String(Math.round(r.duration % 60)).padStart(2, "0");
@@ -663,6 +687,10 @@ function detailActions(r: ArchiveRecord) {
   const labels = savedActionLabel(r.kind);
   const bookmark = `<button class="solid-button" data-action="bookmark">${savedAlready ? "− REMOVE FROM SAVED" : labels.en}<span>${savedAlready ? "已收藏" : labels.cn}</span></button>`;
 
+  if (r.kind === "siteGroup") {
+    // 与影像档案同构：按钮开浮层，站点本身在浮层里点（新标签打开）。
+    return `<div class="detail-actions">${bookmark}<button class="solid-button" data-action="open-site-viewer">VIEW SITES<span>浏览站点</span></button></div>`;
+  }
   if (r.kind === "album") {
     // 图集没有正文：导出它的素材 —— 整包影像（构建期打成 ZIP，见 scripts/blog/export-archives.mjs）。
     const zip = `archives/${encodeURIComponent(r.albumKey)}-images.zip`;
@@ -684,6 +712,9 @@ function detailFootnote(r: ArchiveRecord) {
   }
   if (r.kind === "music") {
     return `<div class="detail-footnote"><span>MP3 · ${r.bitrate} kbps</span><span>${counter}</span></div>`;
+  }
+  if (r.kind === "siteGroup") {
+    return `<div class="detail-footnote"><span>${r.count} SITES</span><span>${counter}</span></div>`;
   }
   return `<div class="detail-footnote"><a class="article-link" href="${escapeHtml(r.href)}">文章链接 ↗</a><span>${counter}</span></div>`;
 }
@@ -738,6 +769,15 @@ function tabPanelMarkup(tab: string) {
     if (r.kind === "album") {
       return `<div class="panel-label">IMAGES / 收录影像</div><ol class="research-notes">${r.images
         .map((image, i) => `<li><span>${String(i + 1).padStart(2, "0")}</span>${escapeHtml(image.title)}</li>`)
+        .join("")}</ol>`;
+    }
+    if (r.kind === "siteGroup") {
+      // 与影像档案的「收录影像」同一版式：清单在面板里可滚动，点进浮层才是可点的。
+      return `<div class="panel-label">SITES / 收录站点</div><ol class="research-notes">${r.items
+        .map(
+          (item, i) =>
+            `<li><span>${String(i + 1).padStart(2, "0")}</span>${escapeHtml(item.name)} · ${escapeHtml(item.host)}</li>`,
+        )
         .join("")}</ol>`;
     }
     if (r.kind === "music") {
@@ -870,13 +910,15 @@ function renderResults() {
     ? hits
         .map(({ r, i }) => {
           const access =
-            r.kind === "album"
-              ? `${r.count} IMAGES`
-              : r.kind === "music"
-                ? `MP3 · ${r.bitrate} kbps`
-                : r.clearance === "RESTRICTED"
-                  ? "CATALOG ONLY"
-                  : "AUTHORIZED";
+            r.kind === "siteGroup"
+              ? `${r.count} SITES`
+              : r.kind === "album"
+                ? `${r.count} IMAGES`
+                : r.kind === "music"
+                  ? `MP3 · ${r.bitrate} kbps`
+                  : r.clearance === "RESTRICTED"
+                    ? "CATALOG ONLY"
+                    : "AUTHORIZED";
           const mark = saved.has(r.id) ? "<i>＋</i>" : "";
           return `<button class="result-row" data-result="${i}"><span class="result-name"><b>${r.id}</b><span>${escapeHtml(r.title)}<small>${escapeHtml(r.en)}</small></span>${mark}</span><span>${escapeHtml(r.department)}</span><span>${access} <i>↗</i></span></button>`;
         })
@@ -1090,6 +1132,13 @@ document.addEventListener("click", (e) => {
     // 按钮写的就是「播放」，所以直接起播；浏览器若拦下自动播放，浮层里还有播放键。
     musicPlayerFeature.open(record, el, !motionActive("viewerNavigation"), true);
   }
+  if (action === "open-site-viewer" && mode === "detail") {
+    const record = records[selected];
+    if (!record || record.kind !== "siteGroup") return;
+    // Safari 不一定在点击时给按钮焦点；显式捕获入口，关闭时才能可靠归还焦点。
+    el.focus({ preventScroll: true });
+    siteViewerFeature.open(record, el, !motionActive("viewerNavigation"));
+  }
   if (action === "search" || action === "saved" || action === "settings") {
     el.focus({ preventScroll: true });
     openModal(action);
@@ -1225,6 +1274,7 @@ window.addEventListener("pageshow", (event) => {
   albumViewerFeature.closeIfActive();
   // 音乐播放器同理；它还会在关闭时把环境背景音乐交还给用户。
   musicPlayerFeature.closeIfActive();
+  siteViewerFeature.closeIfActive();
   scene?.setInputSuspended(false);
 });
 
@@ -1472,6 +1522,7 @@ Object.assign(window, {
       reader: readerFeature.snapshot(),
       albumViewer: albumViewerFeature.snapshot(),
       musicPlayer: musicPlayerFeature.snapshot(),
+      siteViewer: siteViewerFeature.snapshot(),
       bootTime: mode === "boot" ? (frozenTime ?? performance.now() / 1000 - bootStart) + 5 : null,
       selected: records[selected].postId,
       saved: [...saved],
@@ -1486,5 +1537,6 @@ if (import.meta.hot) {
     readerFeature.dispose();
     albumViewerFeature.dispose();
     musicPlayerFeature.dispose();
+    siteViewerFeature.dispose();
   });
 }

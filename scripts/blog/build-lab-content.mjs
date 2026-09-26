@@ -317,17 +317,115 @@ try {
   errors.push(`content/music.json：${error.message}`);
 }
 
+// ── 网站导航（一个大类 = 一列；列里的每条档案 = 一个分组）──────────────────
+// ★结构与影像档案完全同构★：`content/nav.json` 的每个分组 = 一条档案（小类），
+// 分组里的站点 = 这条档案的内容（详情面板的「浏览站点」把它开成浮层）。
+// 因此整块只占**一列**（大类名 = 网站导航），而不是每个分组各占一列。
+const navFile = resolve(root, "content/nav.json");
+const NAV_CATEGORY = "网站导航";
+const navGroups = [];
+let navItems = 0;
+
+/** 展示用域名（去掉 www.）。生成期算好，详情面板与浮层直接用。 */
+const hostOf = (value) => {
+  try {
+    return new URL(value).host.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+};
+
+try {
+  const parsed = JSON.parse(await readFile(navFile, "utf8"));
+  for (const group of Array.isArray(parsed.groups) ? parsed.groups : []) {
+    if (!group || typeof group.group !== "string" || !group.group.trim()) {
+      errors.push("content/nav.json：有条目缺少 group 名称");
+      continue;
+    }
+    const items = [];
+    for (const item of Array.isArray(group.items) ? group.items : []) {
+      if (!item || !item.name || !item.href) {
+        errors.push(`content/nav.json：分组「${group.group}」有条目缺少 name 或 href`);
+        continue;
+      }
+      try {
+        const protocol = new URL(item.href).protocol;
+        if (protocol !== "http:" && protocol !== "https:") throw new Error(protocol);
+      } catch {
+        errors.push(`content/nav.json：「${item.name}」的 href 不是 http(s) 地址：${item.href}`);
+        continue;
+      }
+      // ★图标必须真实存在★：缺文件不会让别处失败，只会在浮层里显示成一个破图标 ——
+      // 那是最难被发现的一类坏数据，所以在这里挡住。
+      if (item.icon) {
+        try {
+          await stat(resolve(blogPublicDir, String(item.icon).replace(/^\//, "")));
+        } catch {
+          errors.push(
+            `content/nav.json：「${item.name}」的 icon 在 apps/blog/public 中不存在：${item.icon}`,
+          );
+        }
+      }
+      items.push({
+        name: item.name,
+        url: item.href,
+        tag: item.tag ?? "",
+        desc: item.desc ?? "",
+        icon: item.icon ?? "",
+        host: hostOf(item.href),
+      });
+    }
+    if (!items.length) continue; // 删空的分组：那条档案不出现
+    navGroups.push({ name: group.group, hint: group.hint ?? "", items });
+    navItems += items.length;
+  }
+} catch (error) {
+  errors.push(`content/nav.json：${error.message}`);
+}
+
+// 与其余档案同一规则：一列恰好 SLOTS_PER_THEME 个槽位，不足循环补位
+// （本站 6 个分组 → 补到 8 槽，前两个分组各重复一次）。
+for (let slot = 0; slot < SLOTS_PER_THEME && navGroups.length > 0; slot += 1) {
+  const group = navGroups[slot % navGroups.length];
+  displayNumber += 1;
+  records.push({
+    id: `X-${String(displayNumber).padStart(3, "0")}`,
+    displayNumber,
+    kind: "siteGroup",
+    // 站点档案没有文章：postId / href 留空，由 adapter 按 kind 分别校验。
+    postId: "",
+    href: "",
+    title: group.name,
+    en: group.name,
+    department: NAV_CATEGORY,
+    category: NAV_CATEGORY,
+    date: "",
+    lead: `${group.items.length} SITES`,
+    clearance: "PUBLIC",
+    abstract: `${group.name} —— ${group.hint || "站点收藏"}，收录 ${group.items.length} 个站点。`,
+    findings: [],
+    source: "",
+    hint: group.hint,
+    count: group.items.length,
+    // 站点列表直接内嵌：只有几十条短记录，没有影像那种体积问题，
+    // 所以不必像 albumImages 那样去重。
+    items: group.items,
+  });
+}
+
 if (errors.length) {
   console.error(`生成三维内容失败：\n- ${errors.join("\n- ")}`);
   process.exit(1);
 }
 
-// 阵列的列 = 5 个文章主题 + 影像大类 + 音乐。三者共用 data.ts 的 fileLocation 分列逻辑，
-// 所以它们都是阵列里真实存在的列——顺序完全由数据决定，代码里不写死列数。
+// 阵列的列 = 文章主题 + 影像大类 + 音乐 + 网站导航分组。四者共用 data.ts 的 fileLocation 分列
+// 逻辑，所以它们都是阵列里真实存在的列——顺序完全由数据决定，代码里不写死列数。
 const columns = [
   ...collections.themes.map((theme) => theme.name),
   ...albumCategories,
   ...(musicCount ? [MUSIC_CATEGORY] : []),
+  // 网站导航：**整块一列**（大类名），列里的每条档案才是分组
+  ...(navGroups.length ? [NAV_CATEGORY] : []),
 ];
 
 await mkdir(resolve(root, ".generated"), { recursive: true });
@@ -350,13 +448,15 @@ await writeFile(
 );
 
 const postRecords = records.filter((r) => r.kind === "post");
+const siteRecords = records.filter((r) => r.kind === "siteGroup");
 const albumRecords = records.filter((r) => r.kind === "album");
 const songRecords = records.filter((r) => r.kind === "music");
 // 槽位数与去重条数分开播报：影集/曲目列按模板规则循环补位，槽位会比图集/歌曲多。
 const distinctAlbums = Object.keys(albumImages).length;
 console.log(
-  `三维内容生成：${columns.length} 列（${collections.themes.length} 文章主题 + ${albumCategories.length} 影像大类 + ${musicCount ? 1 : 0} 音乐）；` +
+  `三维内容生成：${columns.length} 列（${collections.themes.length} 文章主题 + ${albumCategories.length} 影像大类 + ${musicCount ? 1 : 0} 音乐 + ${navGroups.length ? 1 : 0} 网站导航）；` +
     `档案 ${records.length} 条 —— 文章 ${postRecords.length} 条（引用 ${new Set(postRecords.map((r) => r.postId)).size} 篇公开文章）、` +
-    `影像 ${albumRecords.length} 槽（${distinctAlbums} 个图集 / ${albumImageTotal} 张，图片只存一份）、音乐 ${songRecords.length} 槽（${musicDistinct} 首）。` +
+    `影像 ${albumRecords.length} 槽（${distinctAlbums} 个图集 / ${albumImageTotal} 张，图片只存一份）、音乐 ${songRecords.length} 槽（${musicDistinct} 首）、` +
+    `网站导航 ${siteRecords.length} 槽（${navGroups.length} 个分组 / ${navItems} 个站点）。` +
     `每列 ${SLOTS_PER_THEME} 槽。`,
 );

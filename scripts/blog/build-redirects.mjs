@@ -49,17 +49,14 @@ const SITE_REDIRECTS = [
   ['/posts/', '/archive/'],
   // 旧站 /log/ 是 changelog 全展开 → 新站的归档页（更新记录已变成 /log/<日期>/ 的文章）
   ['/log/', '/archive/'],
+  // 旧站的三个栏目已经**搬进 `/lab/` 阵列**（影像档案两列 / 网站导航六列），
+  // 所以旧地址一律 301 到阵列入口 —— 不制造软 404，也不让旧链接撞死。
+  // （这三条 2026-09-26 由站长定：此前一直列在 PENDING 里等决定。）
+  ['/gallery/', '/lab/'],
+  ['/music/', '/lab/'],
+  ['/nav/', '/lab/'],
   // 旧站 /rss.xml /about/ /blog/ 与本站同路径，无需重定向；
   // 旧站的 /account/（互动页）对应的功能已砍掉，新站没有这个页面 → 让它 404（站长 2026-09-26 定）。
-];
-const PENDING = [
-  // 下面两个栏目**已经搬进 `/lab/` 阵列**（影像档案 / 音乐档案），但**旧地址的处置还没定**：
-  // 指到 `/lab/` 还是保持 404，取决于站长的决定。定下来之前不写规则。
-  ['/gallery/', '画廊已搬入 /lab/ 阵列，旧地址待定'],
-  ['/music/', '音乐已搬入 /lab/ 阵列，旧地址待定'],
-  // 下面这个还没搬，等页面落地再启用。
-  // （/calendar/ 已于 2026-09-26 落地，与旧站同路径，因此不需要重定向。）
-  ['/nav/', '站点导航目录尚未搬迁'],
 ];
 
 // ── 读内容 frontmatter ─────────────────────────────────────────────────
@@ -140,9 +137,6 @@ const header = [
   '#',
   `# 规则数：${rules.length}（其中站级 ${SITE_REDIRECTS.length}）`,
   '#',
-  '# 暂不重定向的栏目（原因见各行；现在一律 301 到首页只会制造软 404，反而掩盖真实状态）：',
-  ...PENDING.map(([p, why]) => `#   ${p.padEnd(12)} ${why}`),
-  '#',
 ].join('\n');
 
 const body = rules.map(([from, to, , status]) => `${from} ${to} ${status}`).join('\n');
@@ -167,4 +161,3 @@ console.log(`  来自 legacyUrls：${rules.length - SITE_REDIRECTS.length} 条�
 console.log(`  站级栏目：${SITE_REDIRECTS.length} 条`);
 for (const [from, to, status = 301] of SITE_REDIRECTS) console.log(`    ${from.padEnd(12)} → ${to.padEnd(10)} ${status}`);
 if (warnings.length) { console.log('  跳过：'); for (const w of warnings) console.log(`    ${w}`); }
-console.log(`  暂不重定向：${PENDING.map(([p]) => p).join(' ')}`);

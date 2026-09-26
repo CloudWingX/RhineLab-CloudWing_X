@@ -1,0 +1,141 @@
+/**
+ * 网站导航（站点目录）浮层的表面样式。
+ *
+ * 只在 `dialog.site-viewer` 子树内生效：不写 `:root` / `body` / 全局元素选择器，因此三维应用
+ * 完全不受影响。遮罩、窗口盒与进出动效复用共享的 `.modal-backdrop` / `.terminal-modal` /
+ * `SurfaceTransition`，所以它与 ARCHIVE INDEX / SAVED / SYSTEM 三个弹框以及阅读层、影像查看器
+ * 是同一套表面。
+ *
+ * 颜色一律走 `--theme-*`（由 paintTheme 在 :root 上按明暗插值），不写死色值 —— 浅色与深色
+ * 主题都自动成立。
+ */
+dialog.site-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* 未打开时必须保持隐藏：不能让任何布局规则盖过它。 */
+dialog.site-viewer:not([open]) {
+  display: none;
+}
+
+dialog.site-viewer[open] {
+  display: block;
+}
+
+.sites-modal {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 舞台缩放：**不能写在 .sites-modal 上** —— SurfaceTransition 会对 .terminal-modal
+   （= .sites-modal）跑 element.animate() 改 transform，而 Web Animations 的效果优先级高于
+   普通 CSS 声明，写在它上面会被动画覆盖掉。所以放在不参与动画的包裹层上。 */
+.sites-scale {
+  transform: scale(var(--sites-stage-scale, 1));
+  transform-origin: center;
+}
+
+.sites-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(228px, 1fr));
+  gap: 10px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--theme-line);
+}
+
+.site-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  color: inherit;
+  text-decoration: none;
+  border: 1px solid var(--theme-line);
+}
+
+.site-card:hover,
+.site-card:focus-visible {
+  color: var(--theme-accent);
+  border-color: var(--theme-accent);
+}
+
+/* 图标与首字**互斥**：给了 --site-icon 就只画图标，DOM 里不留首字
+   （CSS 无法感知背景图有没有加载成功，留着的首字会在图标透明处透出来，像两个图标叠一起）。
+   没给 --site-icon 时 `background-image: var(--site-icon)` 无效 → 不画图，只显示首字。 */
+.site-mark {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  font-size: 13px;
+  border: 1px solid var(--theme-line);
+  background-image: var(--site-icon);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.site-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.site-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.site-name {
+  font-size: 14px;
+}
+
+.site-tag {
+  flex: 0 0 auto;
+  padding: 0 5px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--theme-muted);
+  border: 1px solid var(--theme-line);
+}
+
+.site-desc {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--theme-muted);
+}
+
+.site-host {
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  color: var(--theme-muted);
+}
+
+.site-go {
+  flex: 0 0 auto;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--theme-muted);
+}

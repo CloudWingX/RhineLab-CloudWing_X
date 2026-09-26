@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | 阅读层 | `main.ts` 原 116–214 行、共 99 行集成代码：懒加载、请求令牌、焦点、守卫、pagehide、HMR 清理，并直接持有 `ImmersiveReader`；核心别处另有 30 余处引用 | `src/features/reader/index.ts` 的门面，`main.ts` 只装配 7 个宿主端口成员 |
 | 文件位置 | 自有文件与上游文件平铺在 `src/` 根，靠文件名前缀区分 | 自有文件集中在 `src/features/<id>/`，上游文件路径不动 |
-| 样式归属 | 功能的 CSS 由 `main.ts` 逐个 `import` | 归属功能：随各自入口引入（三个功能各有 `styles.ts`，懒加载的随 chunk 走） |
+| 样式归属 | 功能的 CSS 由 `main.ts` 逐个 `import` | 归属功能：随各自入口引入（四个功能各有 `styles.ts`，懒加载的随 chunk 走） |
 | 边界约束 | 无（只靠约定） | `features.manifest.json` + `npm run check:features`，四条规则逐条校验 |
 | 首屏负担 | 阅读层 CSS（17.0 KB / gzip 3.5 KB）在首屏样式表里 | 移出首屏，进入阅读层自己的懒加载 chunk |
 
@@ -84,7 +84,28 @@
 - **检查**：`check:features`（本模块暂无专属检查脚本）。
 - **行为说明**：[MUSIC.md](MUSIC.md)。
 
-### 2.4 其他新增能力（不在 `src/features/`）
+### 2.4 网站导航（站点目录）查看器（`site-viewer`）
+
+- **职责**：在**档案记录页面**（档案详情面板）点「浏览站点」，原地打开一个居中窗口，列出该分组
+  收录的站点（卡片墙：图标 / 站名 / 标签 / 描述 / 域名），每张卡是外链（新标签打开）——焦点与
+  关闭事务。窗口复用三个系统弹框与其余浮层的同一套表面。
+- **目录**：`src/features/site-viewer/`
+  - `index.ts` 唯一入口 + 门面（懒加载、归属守卫、快照、HMR 清理）
+  - `viewer.ts` 浮层生命周期与卡片墙；`viewer.css` 样式；`styles.ts` 样式懒加载入口
+- **加载方式**：按需 `import()`。浮层与其样式表都不进三维入口首屏。
+- **宿主端口** `SiteViewerHost`：`isArchiveReady`、`isIdentityGateActive`、`currentMode`、
+  `notify`、`playSound`、`setSceneInputSuspended`、`stageScale`。
+- **门面** `SiteViewerFeature`：`isActive`、`ownsEvent`、`open`、`closeIfActive`、`withClosed`、
+  `snapshot`、`dispose`。
+- **数据来源**：`content/nav.json` → `build-lab-content.mjs` 把**每个分组**转成一条
+  `kind: "siteGroup"` 的档案记录并入 `records`（类别 `网站导航`）—— 于是「网站导航」是三维阵列
+  里的**一列**，列里的每条档案是一个分组；分组收录的站点是那条档案的 `items[]`。
+- **图标**：`apps/blog/public/nav/`（自托管，**不发外部请求**）；生成期校验文件存在，缺文件直接
+  构建失败。浮层里图标与首字**互斥**（有图标就不在 DOM 里留首字）。
+- **检查**：`check:features`（本模块暂无专属检查脚本）。
+- **行为说明**：[NAV.md](NAV.md)。
+
+### 2.5 其他新增能力（不在 `src/features/`）
 
 这些是构建面而不是运行时功能模块，保持原有目录：
 
@@ -164,7 +185,8 @@ npm run build              # 统一构建（含 check:features）
 
 ### 6.1 模块化改造的验证记录（2026-09-24）
 
-> 本节是当时（2026-09-24）的记录；此后 `auth` 已移除，现为 3 个功能（见 §2）。
+> 本节是当时（2026-09-24）的记录；此后 `auth` 已移除、并陆续加了 album-viewer / music-player /
+> site-viewer，现为 4 个功能（见 §2）。
 
 改造在开放仓库完成，逐项结果如下（同一台机器、同一依赖锁文件）：
 

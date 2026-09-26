@@ -162,6 +162,17 @@ if (await exists(resolve(dist, "lab/index.html"))) {
         fail(`缺少档案下载件：dist/lab/archives/${name}（导出脚本没跑，或 prepare:assets 白名单漏登记）`);
       }
     }
+
+    // 网站导航的图标：自托管在博客的 publicDir（apps/blog/public/nav/），随博客构建进 dist/nav/。
+    // 生成期已校验源文件存在，这里核对它确实进了产物 —— 少一个就是浮层里的一个破图标。
+    for (const record of lab.records.filter((entry) => entry.kind === "siteGroup")) {
+      for (const item of record.items ?? []) {
+        if (!item.icon) continue;
+        if (!(await exists(resolve(dist, item.icon.replace(/^\//, ""))))) {
+          fail(`缺少站点图标：dist${item.icon}（${record.title} → ${item.name}）`);
+        }
+      }
+    }
   } else {
     fail("缺少 .generated/lab-content.json：无法核对档案下载件（先跑 npm run generate:lab-content）");
   }

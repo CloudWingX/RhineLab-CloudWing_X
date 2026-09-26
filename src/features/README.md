@@ -20,9 +20,10 @@
 | --- | --- | --- | --- | --- |
 | 沉浸式 Markdown 阅读 | `reader/` | 按需 `import()` | `ReaderHost` | `ReaderFeature` |
 | 影像档案（图集）查看器 | `album-viewer/` | 按需 `import()` | `AlbumViewerHost` | `AlbumViewerFeature` |
+| 网站导航（站点目录）查看器 | `site-viewer/` | 按需 `import()` | `SiteViewerHost` | `SiteViewerFeature` |
 | 音乐档案播放器 | `music-player/` | 按需 `import()` | `MusicPlayerHost` | `MusicPlayerFeature` |
 
-三个功能都按需加载，样式表归属因此一致：CSS 由各自的 `styles.ts` 引入，并被门面的懒加载路径
+四个功能都按需加载，样式表归属因此一致：CSS 由各自的 `styles.ts` 引入，并被门面的懒加载路径
 一并 `import()`（首屏不为它们付费）。
 
 ## 增删一个功能

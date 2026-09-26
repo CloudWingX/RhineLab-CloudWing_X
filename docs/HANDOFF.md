@@ -159,17 +159,34 @@ git push -u origin migration/cloudwing
 
 ⚠️ 月历外观与翻月手感需真机目视。
 
+### 3.6 网站导航进三维阵列（2026-09-26）
+
+旧站 `/nav/` 的网站导航搬过来了。★形态改过一版★：最初做成"每个分组一列"（阵列 14 列），
+站长指出**那是错的** —— 要的是「网站导航」作为**一个大类占一列**，列里的每条档案才是分组
+（与影像档案完全同构）。现在是 **9 列**。详见 [NAV.md](NAV.md)，要点：
+
+- `content/nav.json`（6 分组 / 21 条目）→ 生成器并入 `records`（`kind: "siteGroup"`）与 `columns`；
+  每列仍**恰好 8 槽** → 网站导航列 8 条档案（6 个分组循环补位）。总档案 72 条。
+- **新增功能模块 `src/features/site-viewer/`**（第 4 个）：与 album-viewer 同构的浮层 ——
+  宿主端口 + 门面 + 懒加载，卡片墙列出分组里的站点，每张卡是外链（新标签 + `noopener`）。
+  退出动效有 600ms 兜底（与影像查看器同因）。
+- 图标**自托管**（`apps/blog/public/nav/`，21 个 / 108 KB），**不发任何外部请求**；
+  生成期 `stat` 每个图标 —— 缺文件直接构建失败（否则只是浮层里的一个破图标，最难被发现）。
+  浮层里**图标与首字互斥**（有图标就不在 DOM 里留首字，否则会在图标透明处透出来）。
+- 详情面板走同一版式：`[收藏][浏览站点]`（与影像档案的 `[收藏][查看详情]` 同构）、
+  第二页签「收录站点」与「收录影像」同版式。
+- 旧地址：`/gallery/`、`/music/`、`/nav/` **一律 301 到 `/lab/`**（站长定），PENDING 清空。
+
+⚠️ 第 9 列的构图与浮层卡片墙的排布需真机目视。
+
 ## 4. 未完成
 
-1. **只剩一个功能没搬**（旧站 13 条路由对照）：
-   - **21 站点导航目录**（旧 `/nav/`）—— 下一步
-   - ~~农历日历~~（旧 `/calendar/`）—— **2026-09-26 已搬**，见 §3.5
-   - ~~giscus 评论~~（旧 `/account/`）—— **已砍掉**（站长定，减负）：`account.astro` 占位页与
-     它那 173 行 CSS 一并删除，旧站的 `/account/`（互动页）随之 404
-2. **两个旧 URL 的处置未定**：`/gallery/` 与 `/music/`。两个栏目**已经搬进 `/lab/` 阵列**了，
-   但这两个**旧地址**要不要 301（指到 `/lab/` 还是保持 404）还没决定。
-   `_redirects` 生成器里它们仍列在"尚未搬迁"的注释里 —— 那句注释现在**已经过期**（见
-   `scripts/blog/build-redirects.mjs` 的 `PENDING`）。
+1. **功能全部搬完**（旧站 13 条路由对照）：农历日历 → §3.5、网站导航 → §3.6、
+   giscus 评论**已砍掉**（站长定，减负 —— `account.astro` 占位页与它那 173 行 CSS 一并删除，
+   旧站的 `/account/` 随之 404）。
+2. ~~两个旧 URL 的处置未定~~ —— **已定**（2026-09-26）：`/gallery/`、`/music/`、`/nav/`
+   三个旧地址一律 **301 到 `/lab/`**（它们现在都是阵列里的列）。`build-redirects.mjs` 里的
+   `PENDING` 清单因此清空。
 3. **从未部署**：CF Pages 的配置（`wrangler.toml`、`_headers`、`_redirects`）都在仓库里备好了，
    但控制台还没建项目。部署前**必须先处理 `/gallery/` 与 `/music/`**，否则旧地址会 404。
    另外注意 **`/` 现在是 200 rewrite 到 `/lab/`**（§3.2）：部署后在线上确认根路径确实进终端，
@@ -183,7 +200,9 @@ git push -u origin migration/cloudwing
 1. **音频能不能真的响**。沙箱里无头 Chrome 的媒体元素表现不一致：同一页面里内联写一遍同样的
    Blob 播放流程能播、时钟正常推进，但播放器里的元素始终 `readyState=0`。**无法判定是环境还是代码**。
    → 真机上打开一首歌的档案详情、点「播放」；不响的话看浮层左下角的状态文案（它现在会显示失败原因）。
-2. **三维阵列 8 列的外观**。页面持续跑 rAF 动画，截图会卡死，所以只能目视。
+2. **三维阵列 9 列的外观**（5 文章主题 + 2 影像大类 + 音乐 + 网站导航）。页面持续跑 rAF
+   动画，截图会卡死，所以只能目视。★跟这项一起看★：站点目录浮层（`[收藏][浏览站点]` 打开）
+   的卡片墙排布、图标有没有破图、外链是不是新标签打开。
    ★**先看这一项**★：第 8 列（音乐）加进来后，`LANE_CENTER` 曾被改成 3.5、与实例排布里写死的 2
    冲突，阵列与抽出的模型错位 1.5 列 —— 已在 §3.1 修掉，但**修完仍需目视确认**：
    选中的档案卡片要正好落在抽出的模型下方居中；左右切列时整个阵列平移，边缘不应跳。
@@ -201,7 +220,7 @@ npm run preview -- --open   # 预览真实产物 dist/
 八步链：`check:imports → check:content → check:features → build:blog → build:lab → build:redirects → search:index → check:site`
 
 **当前验证状态（提交态）**（2026-09-26 深夜，Linux 侧）：`typecheck` 0 报错、`check:features` 通过
-（3 个功能：reader / album-viewer / music-player）、`npm run build` **exit 0**、
+（4 个功能：reader / album-viewer / music-player / site-viewer）、`npm run build` **exit 0**、
 `check:site` 通过、dist 46 页。
 
 **本轮修订（§3.1，已提交）的验证状态**：`tsc --noEmit` **0 报错**、`check:features` / `check:content`
@@ -233,7 +252,7 @@ npm run preview -- --open   # 预览真实产物 dist/
 | 三维入口与装配（三套浮层的宿主端口都在这） | `src/main.ts` |
 | 内容 → 三维数据的契约与校验 | `src/blog-adapter.ts`、`src/data.ts` |
 | 列 / 泳道 / 居中（**列数由数据推导，不写死**） | `src/archive-loop.ts`、`src/scene.ts` |
-| 三个功能模块 | `src/features/{reader,album-viewer,music-player}/` |
+| 功能模块 | `src/features/{reader,album-viewer,music-player,site-viewer}/` |
 | 内容侧唯一数据源 | `content/{posts,pages}`、`content/lab-collections.json`、`content/gallery.json`、`content/music.json` |
 | 素材 | `apps/blog/public/shots/`（132 图，17MB）、`public/music/`（4 首 + 封面 + LRC，43MB） |
 | 构建与校验脚本 | `scripts/blog/`、`scripts/check-features.mjs` |

@@ -89,6 +89,41 @@
       ]
     },
     {
+      "id": "site-viewer",
+      "title": "网站导航（站点目录）查看器",
+      "dir": "src/features/site-viewer",
+      "entry": "src/features/site-viewer/index.ts",
+      "publicApi": [
+        "createSiteViewerFeature",
+        "SITE_VIEWER_ENTRY_SELECTOR"
+      ],
+      "hostPort": "SiteViewerHost",
+      "facade": "SiteViewerFeature",
+      "eager": false,
+      "reason": "站点目录浮层与样式表按需加载：它是少数派入口，三维入口首屏不为它付费。",
+      "styles": [
+        "viewer.css"
+      ],
+      "styleEntry": "src/features/site-viewer/styles.ts",
+      "checks": [],
+      "reviewContract": [
+        "active",
+        "group",
+        "moduleLoaded"
+      ],
+      "runtimeMarkers": [
+        "site-viewer"
+      ],
+      "serverSide": [],
+      "ops": [],
+      "scripts": [],
+      "shared": [],
+      "surfaces": [],
+      "docs": [
+        "docs/NAV.md"
+      ]
+    },
+    {
       "id": "music-player",
       "title": "音乐播放器（曲目 · 歌词 · 播放参数）",
       "dir": "src/features/music-player",
