@@ -32,13 +32,11 @@ import { BootSequence } from "./boot";
 import { wrap, type ArchiveNavigation } from "./archive-loop";
 import {
   records,
-  albums,
   categories,
   archiveColumns,
   columnFiles,
   fileLocation,
-  type ArchiveAlbum,
-  type ArchiveMusic,
+  type ArchiveRecord,
 } from "./data";
 import { TerminalAudio } from "./audio";
 import { audioSettingsMarkup } from "./audio-settings";
@@ -586,84 +584,137 @@ function toggleSaved() {
   audio.play("confirm");
   notify(saved.has(id) ? "档案已加入收藏" : "已取消收藏");
 }
+/** 档案详情的页签标签：三类档案共用一条 01/02/03 结构，只有标签文字按 kind 分叉。 */
+const TAB_LABELS: Record<ArchiveRecord["kind"], [string, string, string]> = {
+  post: ["概述", "研究记录", "访问日志"],
+  album: ["概述", "收录影像", "访问日志"],
+  music: ["概述", "播放参数", "访问日志"],
+};
+const TAB_KEYS = ["overview", "notes", "history"] as const;
+
+/**
+ * 详情页签的标签栏。与文章详情原先手写的那段逐字同构（数字 + 中文 + 下划线指示条），
+ * 现在三类档案都走这里 —— 影集与曲目不会再各长出一套"半成品"版式；摘要段落也因此
+ * 落在 `.tab-panel` 内，套用模板的段落排版（style.css 里唯一的段落规则是 `.tab-panel p`）。
+ */
+function detailTabsMarkup(kind: ArchiveRecord["kind"]) {
+  const labels = TAB_LABELS[kind];
+  return `<div class="detail-tabs" role="tablist">${TAB_KEYS.map(
+    (key, i) =>
+      `<button id="tab-${key}"${i === 0 ? ' class="active"' : ""} role="tab" aria-controls="tab-panel" aria-selected="${i === 0}" data-tab="${key}">0${i + 1} <span>${labels[i]}</span></button>`,
+  ).join("")}<i class="tab-indicator" aria-hidden="true"></i></div>`;
+}
+
+function detailKicker(r: ArchiveRecord) {
+  const right = r.kind === "post" ? r.clearance : r.category;
+  return `<div class="detail-kicker"><span>FILE ${escapeHtml(r.id)}</span><span>${escapeHtml(right)}</span></div>`;
+}
+
+function detailMetadata(r: ArchiveRecord) {
+  if (r.kind === "album") {
+    return `<dl class="metadata"><div><dt>CATEGORY / 大类</dt><dd>${escapeHtml(r.category)}</dd></div><div><dt>VOLUME / 收录</dt><dd>${r.count} 张影像</dd></div><div><dt>PERIOD / 时间跨度</dt><dd>${escapeHtml(r.dateFrom)} → ${escapeHtml(r.dateTo)}</dd></div><div><dt>STATUS / 状态</dt><dd><i></i>已归档 · 可读取</dd></div></dl>`;
+  }
+  if (r.kind === "music") {
+    const minutes = Math.floor(r.duration / 60);
+    const seconds = String(Math.round(r.duration % 60)).padStart(2, "0");
+    return `<dl class="metadata"><div><dt>ARTIST / 艺术家</dt><dd>${escapeHtml(r.artist)}</dd></div><div><dt>ALBUM / 专辑</dt><dd>${escapeHtml(r.album)}</dd></div><div><dt>LENGTH / 时长</dt><dd>${minutes}:${seconds}</dd></div><div><dt>SOURCE / 音源</dt><dd>${escapeHtml(r.origin)}</dd></div></dl>`;
+  }
+  return `<dl class="metadata"><div><dt>DEPARTMENT / 科室</dt><dd>${escapeHtml(r.department)}</dd></div><div><dt>COLLECTION / 编目范围</dt><dd>${escapeHtml(r.date)}</dd></div><div><dt>RELATED / 相关人物</dt><dd>${escapeHtml(r.lead)}</dd></div><div><dt>STATUS / 状态</dt><dd><i></i>${r.clearance === "RESTRICTED" ? "目录访问" : "已归档 · 可读取"}</dd></div></dl>`;
+}
+
+function detailActions(r: ArchiveRecord) {
+  if (r.kind === "album") {
+    return '<div class="detail-actions"><button class="solid-button" data-action="open-album-viewer">VIEW IMAGES<span>查看详情</span></button></div>';
+  }
+  if (r.kind === "music") {
+    return '<div class="detail-actions"><button class="solid-button" data-action="play-track">PLAY<span>播放</span></button></div>';
+  }
+  const savedAlready = saved.has(r.postId);
+  return `<div class="detail-actions"><button class="solid-button" data-action="bookmark">${savedAlready ? "− REMOVE FROM SAVED" : "＋ SAVE ARTICLE"}<span>${savedAlready ? "已收藏" : "收藏文章"}</span></button><a class="export-button" data-action="read-immersive" href="${escapeHtml(r.href)}" aria-label="阅读 ${escapeHtml(r.title)} 全文">阅读全文 <span>→</span></a></div>`;
+}
+
+function detailFootnote(r: ArchiveRecord) {
+  const counter = `${String(selected + 1).padStart(3, "0")} / ${String(records.length).padStart(3, "0")}`;
+  if (r.kind === "album") {
+    return `<div class="detail-footnote"><span>IMAGE ARCHIVE · ${r.count} 张影像</span><span>${counter}</span></div>`;
+  }
+  if (r.kind === "music") {
+    return `<div class="detail-footnote"><span>MP3 · ${r.bitrate} kbps</span><span>${counter}</span></div>`;
+  }
+  return `<div class="detail-footnote"><a class="article-link" href="${escapeHtml(r.href)}">文章链接 ↗</a><span>${counter}</span></div>`;
+}
+
+/**
+ * 详情面板左下角的档案编号块。文章有可检视的三维文档模型，所以整块都在；
+ * 影集与曲目没有模型，只保留编号与「INTERNAL DATABASE」，隐藏两项依赖模型的控件
+ * （DRAG TO INSPECT / 360° 查看文档模型）—— 否则会给出点了没反应的入口。
+ */
+function setObjectCaption(r: ArchiveRecord) {
+  const caption = $<HTMLElement>(".object-caption");
+  caption.hidden = false;
+  const hasModel = r.kind === "post";
+  const inspect = caption.querySelector<HTMLElement>("small");
+  const viewerOpen = caption.querySelector<HTMLElement>(".viewer-open");
+  // ★用内联 display，不能只设 hidden★：style.css 里 `.object-caption > small { display: block }`
+  // 是作者样式，优先级高于 `[hidden]` 的 UA 规则，只加 hidden 属性挡不住它。
+  if (inspect) inspect.style.display = hasModel ? "" : "none";
+  if (viewerOpen) viewerOpen.style.display = hasModel ? "" : "none";
+}
+
 function renderDetail() {
   tabTransition.cancel();
   const r = records[selected];
-  // 影像档案（图集）与音乐档案各走一套模板：它们都没有文章的三页签。
-  if (r.kind === "album") {
-    renderAlbumDetail(r);
-    return;
-  }
-  if (r.kind === "music") {
-    renderMusicDetail(r);
-    return;
-  }
-  // 从图集切回文章档案时，把详情页上那块"三维物体"说明恢复出来。
-  $(".object-caption").hidden = false;
-  $("#object-id").textContent = "NO." + String(selected + 1).padStart(3, "0");
-  $("#detail-content").innerHTML = `
-  <div class="detail-kicker"><span>FILE ${r.id}</span><span>${escapeHtml(r.clearance)}</span></div>
+  // 三类档案共用同一详情版式（kicker / 标题 / 元数据 / 三页签 / 操作区 / 脚注），
+  // 只有元数据字段、页签标签与页签正文、操作按钮按 kind 分叉。
+  setObjectCaption(r);
+  $("#object-id").textContent = "NO." + String(r.displayNumber).padStart(3, "0");
+  $("#detail-content").innerHTML = `${detailKicker(r)}
   <h2>${escapeHtml(r.en)}</h2><div class="detail-title-cn">${escapeHtml(r.title)}<span>${escapeHtml(r.category)}</span></div>
   <div class="detail-rule"></div>
-  <dl class="metadata"><div><dt>DEPARTMENT / 科室</dt><dd>${escapeHtml(r.department)}</dd></div><div><dt>COLLECTION / 编目范围</dt><dd>${escapeHtml(r.date)}</dd></div><div><dt>RELATED / 相关人物</dt><dd>${escapeHtml(r.lead)}</dd></div><div><dt>STATUS / 状态</dt><dd><i></i>${r.clearance === "RESTRICTED" ? "目录访问" : "已归档 · 可读取"}</dd></div></dl>
-  <div class="detail-tabs" role="tablist"><button id="tab-overview" class="active" role="tab" aria-controls="tab-panel" aria-selected="true" data-tab="overview">01 <span>概述</span></button><button id="tab-notes" role="tab" aria-controls="tab-panel" aria-selected="false" data-tab="notes">02 <span>研究记录</span></button><button id="tab-history" role="tab" aria-controls="tab-panel" aria-selected="false" data-tab="history">03 <span>访问日志</span></button><i class="tab-indicator" aria-hidden="true"></i></div>
-  <div id="tab-panel" class="tab-panel" role="tabpanel">${overview()}</div>
-  <div class="detail-actions"><button class="solid-button" data-action="bookmark">${saved.has(r.postId) ? "− REMOVE FROM SAVED" : "＋ SAVE ARTICLE"}<span>${saved.has(r.postId) ? "已收藏" : "收藏文章"}</span></button><a class="export-button" data-action="read-immersive" href="${escapeHtml(r.href)}" aria-label="阅读 ${escapeHtml(r.title)} 全文">阅读全文 <span>→</span></a></div>
-  <div class="detail-footnote"><a class="article-link" href="${escapeHtml(r.href)}">文章链接 ↗</a><span>${String(selected + 1).padStart(3, "0")} / ${String(records.length).padStart(3, "0")}</span></div>`;
+  ${detailMetadata(r)}
+  ${detailTabsMarkup(r.kind)}
+  <div id="tab-panel" class="tab-panel" role="tabpanel">${tabPanelMarkup("overview")}</div>
+  ${detailActions(r)}
+  ${detailFootnote(r)}`;
   $("#detail-content").setAttribute("tabindex", "-1");
-  $('[data-action="bookmark"]').setAttribute("aria-pressed", String(saved.has(r.postId)));
+  document
+    .querySelector<HTMLElement>('[data-action="bookmark"]')
+    ?.setAttribute("aria-pressed", String(r.kind === "post" && saved.has(r.postId)));
   documentDecryption.reset($("#detail-content"), !motionActive("documentReveal") || scene.decryptionFrame.phase === "clear");
   setTab(activeTab, false);
 }
-/**
- * 影像档案的详情。一条记录 = 一个图集：元数据换成图集信息（大类 / 收录张数 / 时间跨度），
- * 操作区把「阅读全文」换成「查看详情」——点开后交给 features/album-viewer 接管。
- *
- * 图集同样是阵列里的一张卡片（有自己的槽位），但它是影像合集而不是文档，
- * 没有可检视的"文档模型"，所以隐藏 object-caption 那块（DRAG TO INSPECT / 360° 查看文档模型）。
- */
-function renderAlbumDetail(album: ArchiveAlbum) {
-  $(".object-caption").hidden = true;
-  $("#object-id").textContent = "NO." + String(album.displayNumber).padStart(3, "0");
-  $("#detail-content").innerHTML = `
-  <div class="detail-kicker"><span>FILE ${escapeHtml(album.id)}</span><span>${escapeHtml(album.category)}</span></div>
-  <h2>${escapeHtml(album.en)}</h2><div class="detail-title-cn">${escapeHtml(album.title)}<span>${escapeHtml(album.category)}</span></div>
-  <div class="detail-rule"></div>
-  <dl class="metadata"><div><dt>CATEGORY / 大类</dt><dd>${escapeHtml(album.category)}</dd></div><div><dt>VOLUME / 收录</dt><dd>${album.count} 张影像</dd></div><div><dt>PERIOD / 时间跨度</dt><dd>${escapeHtml(album.dateFrom)} → ${escapeHtml(album.dateTo)}</dd></div><div><dt>STATUS / 状态</dt><dd><i></i>已归档 · 可读取</dd></div></dl>
-  <div class="panel-label">ABSTRACT / 摘要</div><p>${escapeHtml(album.title)} 图集，属「${escapeHtml(album.category)}」，共 ${album.count} 张影像，时间跨度 ${escapeHtml(album.dateFrom)} 至 ${escapeHtml(album.dateTo)}。</p>
-  <div class="detail-actions"><button class="solid-button" data-action="open-album-viewer">VIEW IMAGES<span>查看详情</span></button></div>
-  <div class="detail-footnote"><span>ALBUM ${String(albums.indexOf(album) + 1).padStart(3, "0")} / ${String(albums.length).padStart(3, "0")}</span><span>${album.count} IMAGES</span></div>`;
-  $("#detail-content").setAttribute("tabindex", "-1");
-  documentDecryption.reset($("#detail-content"), !motionActive("documentReveal") || scene.decryptionFrame.phase === "clear");
+
+/** 页签正文：01 概述 / 03 访问日志三类通用，02 按 kind 换成对应内容。 */
+function tabPanelMarkup(tab: string) {
+  const r = records[selected];
+  if (tab === "overview") {
+    return `<div class="panel-label">ABSTRACT / 摘要</div><p>${escapeHtml(r.abstract)}</p>`;
+  }
+  if (tab === "notes") {
+    if (r.kind === "album") {
+      return `<div class="panel-label">IMAGES / 收录影像</div><ol class="research-notes">${r.images
+        .map((image, i) => `<li><span>${String(i + 1).padStart(2, "0")}</span>${escapeHtml(image.title)}</li>`)
+        .join("")}</ol>`;
+    }
+    if (r.kind === "music") {
+      const minutes = Math.floor(r.duration / 60);
+      const seconds = String(Math.round(r.duration % 60)).padStart(2, "0");
+      return `<div class="panel-label">PLAYBACK / 播放参数</div><dl class="metadata"><div><dt>BITRATE / 码率</dt><dd>${r.bitrate} kbps</dd></div><div><dt>SIZE / 体积</dt><dd>${r.sizeMB} MB</dd></div><div><dt>LENGTH / 时长</dt><dd>${minutes}:${seconds}</dd></div><div><dt>LYRICS / 歌词</dt><dd>${r.instrumental ? "纯音乐" : "同步歌词"}</dd></div></dl>`;
+    }
+    return `<div class="panel-label">RESEARCH NOTES / 研究记录</div><ol class="research-notes">${r.findings
+      .map((finding, i) => `<li><span>${String(i + 1).padStart(2, "0")}</span>${escapeHtml(finding)}</li>`)
+      .join("")}</ol>`;
+  }
+  return `<div class="panel-label">ACCESS LOG / 本次访问</div>${accessLog
+    .filter((entry) => entry.id === r.id)
+    .slice(0, 4)
+    .map(
+      (entry) =>
+        `<div class="log-row"><span>${entry.time}</span><span>${escapeHtml(entry.label)}</span><b>READ AUTHORIZED</b></div>`,
+    )
+    .join("")}<p class="log-note">本次会话已通过身份验证。档案内容以当前终端可访问范围展示。</p>`;
 }
 
-/**
- * 音乐档案的详情。一条记录 = 一首歌：元数据换成曲目信息（艺术家 / 专辑 / 时长 / 音源），
- * 操作区是「播放」——点开交给 features/music-player 的单曲播放浮层。
- *
- * 音乐和影像档案一样没有文章，所以不出现「阅读全文」与收藏；
- * 也没有可检视的"文档模型"，因此隐藏 object-caption 那块。
- */
-function renderMusicDetail(track: ArchiveMusic) {
-  $(".object-caption").hidden = true;
-  $("#object-id").textContent = "NO." + String(track.displayNumber).padStart(3, "0");
-  const minutes = Math.floor(track.duration / 60);
-  const seconds = String(Math.round(track.duration % 60)).padStart(2, "0");
-  $("#detail-content").innerHTML = `
-  <div class="detail-kicker"><span>FILE ${escapeHtml(track.id)}</span><span>${escapeHtml(track.category)}</span></div>
-  <h2>${escapeHtml(track.en)}</h2><div class="detail-title-cn">${escapeHtml(track.title)}<span>${escapeHtml(track.category)}</span></div>
-  <div class="detail-rule"></div>
-  <dl class="metadata"><div><dt>ARTIST / 艺术家</dt><dd>${escapeHtml(track.artist)}</dd></div><div><dt>ALBUM / 专辑</dt><dd>${escapeHtml(track.album)}</dd></div><div><dt>LENGTH / 时长</dt><dd>${minutes}:${seconds}</dd></div><div><dt>SOURCE / 音源</dt><dd>${escapeHtml(track.origin)}</dd></div></dl>
-  <div class="panel-label">ABSTRACT / 摘要</div><p>${escapeHtml(track.abstract)}</p>
-  <div class="detail-actions"><button class="solid-button" data-action="play-track">PLAY<span>播放</span></button></div>
-  <div class="detail-footnote"><span>TRACK ${escapeHtml(track.id)} · ${track.sizeMB} MB</span><span>${track.instrumental ? "INSTRUMENTAL / 纯音乐" : "WITH LYRICS / 有歌词"}</span></div>`;
-  $("#detail-content").setAttribute("tabindex", "-1");
-  documentDecryption.reset($("#detail-content"), !motionActive("documentReveal") || scene.decryptionFrame.phase === "clear");
-}
-
-function overview() {
-  return `<div class="panel-label">ABSTRACT / 摘要</div><p>${escapeHtml(records[selected].abstract)}</p>`;
-}
 function setTab(tab: string, sound = true) {
   if (sound && tab === activeTab) return;
   activeTab = tab;
@@ -673,27 +724,12 @@ function setTab(tab: string, sound = true) {
     b.setAttribute("aria-selected", String(active));
     b.setAttribute("tabindex", active ? "0" : "-1");
   });
-  const r = records[selected];
   const tabButton = $<HTMLButtonElement>(`[data-tab="${tab}"]`);
   const indicator = $(".tab-indicator");
   indicator.style.transition = sound ? "" : "none";
   indicator.style.transform = `translateX(${tabButton.offsetLeft}px) scaleX(${tabButton.offsetWidth})`;
   $("#tab-panel").setAttribute("aria-labelledby", tabButton.id);
-  $("#tab-panel").innerHTML =
-    tab === "overview"
-      ? overview()
-      : tab === "notes"
-        ? `<div class="panel-label">RESEARCH NOTES / 研究记录</div><ol class="research-notes">${r.findings.map((f, i) => `<li><span>${String(i + 1).padStart(2, "0")}</span>${escapeHtml(f)}</li>`).join("")}</ol>`
-        : `<div class="panel-label">ACCESS LOG / 本次访问</div>${accessLog
-            .filter((entry) => entry.id === r.id)
-            .slice(0, 4)
-            .map(
-              (entry) =>
-                `<div class="log-row"><span>${entry.time}</span><span>${escapeHtml(entry.label)}</span><b>READ AUTHORIZED</b></div>`,
-            )
-            .join(
-              "",
-            )}<p class="log-note">本次会话已通过身份验证。档案内容以当前终端可访问范围展示。</p>`;
+  $("#tab-panel").innerHTML = tabPanelMarkup(tab);
   $("#tab-panel").scrollTop = 0;
   documentDecryption.refresh();
   if (sound) {
