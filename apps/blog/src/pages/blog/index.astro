@@ -1,6 +1,6 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
-import { formatDate, getPublishedPosts } from "../lib/content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { formatDate, getPublishedPosts } from "../../lib/content";
 
 const posts = await getPublishedPosts();
 const categories = [...new Set(posts.flatMap((post) => post.data.categories))];
