@@ -137,12 +137,35 @@ git push -u origin migration/cloudwing
 **顺带对齐**：`build-lab-content.mjs` 的 origin 默认值原本是 `example.com`，而站点与
 `astro.config.mjs` 的默认是 `cloudwing.top` —— 导出的 TXT 里"原文链接"因此指向 example.com，已改齐。
 
+### 3.5 日历页落地（2026-09-26）
+
+旧站 `/calendar/` 的「记录 · 日历」搬过来了，**只做月历**（不做侧栏倒计时，站长定）。
+路径与旧站同 → 不需要重定向。详见 [CALENDAR.md](CALENDAR.md)，要点：
+
+- **★农历换算改成自写★**：旧站依赖的 `js-calendar-converter` 是 **GPL-3.0-or-later**，而本仓库是
+  MIT 模板 —— 不能把 GPL 拉进依赖图。改成"自写算法（`apps/blog/src/lib/lunar.ts`）+ 一张只含
+  天文事实的年表（`lunar-table.json`）"；年表从那份实现的**输出**里一次性导出
+  （`verification/gen-lunar-table.cjs`），**那份 GPL 实现只在本机临时借用，不进任何依赖**。
+- **★逐日对拍★**（`verification/diff-lunar.mjs`）：判据是日历格子上真正显示的两个值
+  （标签 + 种类），覆盖 **73058 天（1900-01-31 ~ 2100-02-08）· 0 不一致**。
+  它抓到过两个真 bug：「初十」写成「十」、年表最后一年被截断 —— 没对拍这两个就上线了。
+- 窗口从旧站的写死 2025–2027 改成**构建年 −1 ~ +2**（自动跟随）；年表真实覆盖农历年
+  1900–2099，界外 `solarToLunar` 返回 `null` 而不猜（组装层撞上直接抛错，不静默画错）。
+- 每年要改的只有一处：`content/calendar.json`（法定节假日与调休，gov.cn 口径）。
+- 顶栏加「日历」一项；`check-site` 的 requiredFiles 加 `calendar/index.html`；
+  `build-redirects` 的 PENDING 去掉 `/calendar/`。
+- **砍评论**：`account.astro` 删除、sitemap 不再排除 `/account/`、`blog.css` 删掉 account 段
+  （173 行）、`BaseLayout` 里那段账号注释删掉。
+
+⚠️ 月历外观与翻月手感需真机目视。
+
 ## 4. 未完成
 
-1. **还有三个功能没搬**（旧站 13 条路由对照）：
-   - **农历日历**（旧 `/calendar/`）—— 未开始
-   - **21 站点导航目录**（旧 `/nav/`）—— 未开始
-   - **giscus 评论**（旧 `/account/`）—— 未开始；新站的 `/account/` 目前是占位页，正好留给它
+1. **只剩一个功能没搬**（旧站 13 条路由对照）：
+   - **21 站点导航目录**（旧 `/nav/`）—— 下一步
+   - ~~农历日历~~（旧 `/calendar/`）—— **2026-09-26 已搬**，见 §3.5
+   - ~~giscus 评论~~（旧 `/account/`）—— **已砍掉**（站长定，减负）：`account.astro` 占位页与
+     它那 173 行 CSS 一并删除，旧站的 `/account/`（互动页）随之 404
 2. **两个旧 URL 的处置未定**：`/gallery/` 与 `/music/`。两个栏目**已经搬进 `/lab/` 阵列**了，
    但这两个**旧地址**要不要 301（指到 `/lab/` 还是保持 404）还没决定。
    `_redirects` 生成器里它们仍列在"尚未搬迁"的注释里 —— 那句注释现在**已经过期**（见
@@ -225,4 +248,4 @@ npm run preview -- --open   # 预览真实产物 dist/
 ## 10. 第三方权利（不随站点授权）
 
 132 张游戏截图、4 首商业发行音乐（V.K克 / SawanoHiroyuki[nZk] / supercell）、
-21 个产品商标图标、giscus、天气接口 —— 均**不随站点授权**，仅站内使用。
+21 个产品商标图标、天气接口 —— 均**不随站点授权**，仅站内使用。（giscus 已不引入。）

@@ -1,0 +1,168 @@
+---
+// 日历页（/calendar/）
+//
+// 月历 + 农历/节气/节日 + 法定节假日与调休 + 站点更新标记。三件事都在**构建期**算好、
+// 内联进页面，访客端零请求、零外部依赖：
+//   · 农历/节气/节日：`src/lib/lunar.ts`（自写算法）+ `lunar-table.json`（天文事实年表）
+//   · 法定节假日与调休：`content/calendar.json`（站长每年补一次）
+//   · 站点更新：更新档案那一类的文章按日聚合，条数取正文里的列表项
+//
+// ★月历网格由客户端按访客本地「今天」渲染★（沿用旧站做法）：构建时间和访问时间解耦，
+// 任何月份都能翻、不发请求。窗口是「构建年 −1 ~ +2」，界外没有数据也就不猜。
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { BUILD_NOW, getPublishedPosts } from "../../lib/content";
+import { buildCalendarPayload, countChanges } from "../../lib/calendar-data";
+
+const updates = new Map<string, number>();
+for (const post of await getPublishedPosts()) {
+  if (!post.data.categories.includes("更新档案")) continue;
+  const date = post.data.publishedAt.toISOString().slice(0, 10);
+  updates.set(date, (updates.get(date) ?? 0) + countChanges(post.body ?? ""));
+}
+
+const payload = buildCalendarPayload({
+  year: BUILD_NOW.getUTCFullYear(),
+  updates: [...updates].map(([date, count]) => ({ date, count })),
+});
+const dataJson = JSON.stringify(payload).replace(/</g, "\\u003c");
+---
+
+<BaseLayout title="日历" description="月历：农历、节气、法定节假日与调休，叠加站点更新标记。">
+  <h1 class="page-title">日历</h1>
+  <p class="meta">农历 · 节气 · 法定节假日与调休，叠加站点更新记录。</p>
+
+  <section class="cal" id="cw-cal" aria-label="月历">
+    <div class="cal-bar">
+      <h2 class="cal-title" id="cal-title" aria-live="polite"></h2>
+      <div class="cal-btns">
+        <button class="cal-btn" id="cal-prev" type="button" aria-label="上一个月">‹</button>
+        <button class="cal-btn" id="cal-today" type="button">今天</button>
+        <button class="cal-btn" id="cal-next" type="button" aria-label="下一个月">›</button>
+      </div>
+    </div>
+    <div class="cal-week" aria-hidden="true">
+      <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span>
+      <span class="cal-wend">六</span><span class="cal-wend">日</span>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </section>
+
+  <ul class="cal-legend">
+    <li><i class="cal-demo cal-badge-off">休</i>法定假期</li>
+    <li><i class="cal-demo cal-badge-on">班</i>调休上班</li>
+    <li><i class="cal-demo cal-sub-fest">节</i>节日</li>
+    <li><i class="cal-demo cal-sub-term">气</i>节气</li>
+    <li><i class="cal-demo cal-logdot"></i>当日有站点更新</li>
+  </ul>
+
+  <noscript><p class="empty-state">月历需要启用 JavaScript 后按访客本地时间渲染。</p></noscript>
+
+  <script type="application/json" id="cal-data" set:html={dataJson}></script>
+  <script is:inline>
+    document.addEventListener("DOMContentLoaded", function () {
+      var root = document.getElementById("cw-cal");
+      var dataEl = document.getElementById("cal-data");
+      if (!root || !dataEl) return;
+      var DATA = JSON.parse(dataEl.textContent || "{}");
+
+      var pad = function (n) { return String(n).padStart(2, "0"); };
+      var iso = function (y, m, d) { return y + "-" + pad(m) + "-" + pad(d); };
+      var idxOf = function (y, m, d) {
+        return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(DATA.y0, DATA.m0 - 1, 1)) / 86400000);
+      };
+
+      var now = new Date();
+      var viewY = now.getFullYear();
+      var viewM = now.getMonth() + 1;
+      // 打开时先落到"今天"所在的月；今天若在数据窗口外，落到离它最近的边界月。
+      var y0m = DATA.y0 * 12 + (DATA.m0 - 1);
+      var y1m = DATA.y1 * 12 + 11;
+      var viewM0 = viewY * 12 + (viewM - 1);
+      if (viewM0 < y0m) { viewY = DATA.y0; viewM = DATA.m0; }
+      else if (viewM0 > y1m) { viewY = DATA.y1; viewM = 12; }
+
+      var $title = document.getElementById("cal-title");
+      var $grid = document.getElementById("cal-grid");
+      var $prev = document.getElementById("cal-prev");
+      var $next = document.getElementById("cal-next");
+      var $today = document.getElementById("cal-today");
+
+      function tooltipFor(key, y, m, d, label, kind) {
+        var h = DATA.holiday[key];
+        var n = DATA.log[key];
+        var parts = [key];
+        if (kind === "1") parts.push(label);
+        else if (kind === "2") parts.push("节气 " + label);
+        else parts.push("农历 " + label);
+        if (h) parts.push(h[0] === "off" ? h[1] + " · 放假" : "调休上班");
+        if (n) parts.push("站点更新 " + n + " 条");
+        return parts.join(" · ");
+      }
+
+      function render() {
+        $title.textContent = viewY + " 年 " + viewM + " 月";
+        var mi = viewY * 12 + (viewM - 1);
+        $prev.disabled = mi <= y0m;
+        $next.disabled = mi >= y1m;
+        $today.disabled = mi === now.getFullYear() * 12 + now.getMonth();
+
+        // 周一为一周之首
+        var lead = (new Date(viewY, viewM - 1, 1).getDay() + 6) % 7;
+        var dim = new Date(viewY, viewM, 0).getDate();
+        var todayKey = iso(now.getFullYear(), now.getMonth() + 1, now.getDate());
+        var html = "";
+        for (var i = 0; i < lead; i++) html += '<div class="cal-day is-blank"></div>';
+        for (var d = 1; d <= dim; d++) {
+          var key = iso(viewY, viewM, d);
+          var idx = idxOf(viewY, viewM, d);
+          var inRange = idx >= 0 && idx < DATA.labels.length;
+          var label = inRange ? DATA.labels[idx] : "";
+          var kind = inRange ? DATA.kinds[idx] : "0";
+          var h = DATA.holiday[key];
+          var n = DATA.log[key] || 0;
+          var wend = [0, 6].indexOf(new Date(viewY, viewM - 1, d).getDay()) >= 0;
+          var cls = "cal-day";
+          if (wend) cls += " is-wend";
+          if (key === todayKey) cls += " is-today";
+          if (h) cls += h[0] === "off" ? " is-off" : " is-work";
+          html +=
+            '<div class="' + cls + '" data-date="' + key + '" title="' + tooltipFor(key, viewY, viewM, d, label, kind) + '">' +
+            '<span class="cal-num">' + d + "</span>" +
+            '<span class="cal-sub' + (kind === "1" ? " cal-sub-fest" : kind === "2" ? " cal-sub-term" : "") + '">' + label + "</span>" +
+            (h ? '<span class="cal-badge ' + (h[0] === "off" ? "cal-badge-off" : "cal-badge-on") + '">' + (h[0] === "off" ? "休" : "班") + "</span>" : "") +
+            (n ? '<span class="cal-logdot" aria-hidden="true"></span>' : "") +
+            "</div>";
+        }
+        var tail = (lead + dim) % 7 === 0 ? 0 : 7 - ((lead + dim) % 7);
+        for (var j = 0; j < tail; j++) html += '<div class="cal-day is-blank"></div>';
+        $grid.innerHTML = html;
+      }
+
+      function shift(months) {
+        var total = viewY * 12 + (viewM - 1) + months;
+        if (total < y0m || total > y1m) return;
+        viewY = Math.floor(total / 12);
+        viewM = (total % 12) + 1;
+        render();
+      }
+
+      $prev.addEventListener("click", function () { shift(-1); });
+      $next.addEventListener("click", function () { shift(1); });
+      $today.addEventListener("click", function () {
+        viewY = now.getFullYear();
+        viewM = now.getMonth() + 1;
+        var total = viewY * 12 + (viewM - 1);
+        if (total < y0m) { viewY = DATA.y0; viewM = DATA.m0; }
+        else if (total > y1m) { viewY = DATA.y1; viewM = 12; }
+        render();
+      });
+      document.addEventListener("keydown", function (event) {
+        if (event.target !== document.body || event.metaKey || event.ctrlKey || event.altKey) return;
+        if (event.key === "ArrowLeft") { event.preventDefault(); shift(-1); }
+        if (event.key === "ArrowRight") { event.preventDefault(); shift(1); }
+      });
+
+      render();
+    });
+  </script>
+</BaseLayout>

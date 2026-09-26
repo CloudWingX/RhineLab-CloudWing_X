@@ -64,6 +64,7 @@ const requiredFiles = [
   "robots.txt",
   "sitemap-index.xml",
   "search/index.html",
+  "calendar/index.html",
   "pagefind/pagefind.js",
   "lab/index.html",
 ];

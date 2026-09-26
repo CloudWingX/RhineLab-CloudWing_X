@@ -15,6 +15,7 @@
 | [AUTHORING.md](AUTHORING.md) | 写作与内容维护：目录约定、frontmatter 字段、草稿与未来文章、URL 与重定向、三维主题映射、常见问题 |
 | [BUILD.md](BUILD.md) | 构建与发布：环境准备、构建顺序、本地预览、资源白名单、release 打包与激活、回滚、健康检查、排障 |
 | [READER.md](READER.md) | 沉浸式全文阅读：模块职责、页面契约、窗口与布局参数、控件与目录导航、内容白名单与安全、滚动恢复、验证命令 |
+| [CALENDAR.md](CALENDAR.md) | 日历页：三份数据来源、为什么自写农历换算（GPL 规避）与逐日对拍、窗口边界、每年要改的一处 |
 | [ALBUM.md](ALBUM.md) | 影像档案（图集）查看器：两个大类与档案记录的关系、数据来源、模块职责、行为与验证 |
 | [MUSIC.md](MUSIC.md) | 音乐档案与播放器：曲目数据与素材、模块职责、Blob 播放的理由、歌词同步、验证 |
 | [UPSTREAM.md](UPSTREAM.md) | 上游来源与署名：只读远端配置、相对上游的差异、第三方资源与许可、处理上游更新的原则 |
@@ -33,4 +34,6 @@
   `content/gallery.json`
 - **要改音乐档案/播放器**：[MUSIC.md](MUSIC.md) → `src/features/music-player/` 与
   `content/music.json`
+- **要改日历页**：[CALENDAR.md](CALENDAR.md) → `content/calendar.json`、
+  `apps/blog/src/lib/calendar-data.ts`
 - **要同步上游或调整素材**：[UPSTREAM.md](UPSTREAM.md)
