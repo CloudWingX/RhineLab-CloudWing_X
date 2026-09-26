@@ -10,7 +10,7 @@
 | 构建命令 | `npm run build` |
 | 构建输出目录 | `dist` |
 | 框架预设 | **None / 无** —— 本项目是 npm workspace + 自定义构建链，不要让预设插手 |
-| 环境变量 | `NODE_VERSION` = `22.23.2`；`BLOG_SITE_ORIGIN` = `https://blog.cloudwing.top`（默认值已是它，显式设一遍更稳） |
+| 环境变量 | `BLOG_SITE_ORIGIN` = `https://blog.cloudwing.top`（默认值已是它，显式设一遍更稳）；`NODE_VERSION` = `22.23.2`（可选，CF 默认的 24.18.0 也全绿） |
 | 自定义域名 | `blog.cloudwing.top`（见 §1.6） |
 
 等构建跑完（约 3–5 分钟）→ 拿到 `*.pages.dev` 域名 → 接自定义域名 → 按 §4 的清单核对。
@@ -71,13 +71,38 @@ git push -u origin migration/cloudwing    # 这个分支会成为默认分支
 ★这一步不做也可以先跑（`<项目名>.pages.dev` 直接能看）★，但**正式对外之前一定要接上** ——
 否则 canonical / sitemap 指向 `blog.cloudwing.top` 而实际访问在 pages.dev，等于给搜索引擎两个地址。
 
+## 1.9 ★建项目时必须选 Pages，不是 Workers★（实测踩过）
+
+2026-09-26 实录：项目建成了 **Worker**，构建全绿之后挂在最后一步 ——
+
+```
+Executing user deploy command: npx wrangler deploy
+✘ [ERROR] The Cloudflare application detection logic has been run in the root of a
+  workspace instead of targeting a specific project.
+```
+
+两个判据（见到任一条就说明走错了流程）：
+
+1. **日志里有 `Executing user deploy command`** —— ★Pages 构建没有"部署命令"这一步★，它只认
+   "构建输出目录"。有部署命令 = Workers Builds（`wrangler deploy` 默认值）。
+2. **报错来自 wrangler 的"应用探测"** —— 本仓库 `package.json` 有 `workspaces`，wrangler 在
+   workspace 根目录拒绝猜是哪个应用，于是失败。
+
+正确路径：`Workers & Pages → Create → **Pages** 标签 → Connect to Git`，然后只填两项
+（构建命令 `npm run build`、输出目录 `dist`），**没有部署命令**。
+
+为什么不干脆改成 Worker：本仓库的 `wrangler.toml` 写的是 `pages_build_output_dir`
+（**Pages 专用键**），`_headers` / `_redirects` 也是按 Pages 语义配的 —— 换 Workers 得把
+配置整套改成静态资源 Worker，没必要。
+
 ## 2. 控制台要设的三项
 
 | 项 | 值 | 为什么 |
 | --- | --- | --- |
 | 构建命令 | `npm run build` | 它已含 `generate:lab-content`（模板原本的 build 缺这一步，干净 clone 会挂在 `check:features`） |
 | 输出目录 | `dist` | |
-| `NODE_VERSION` | `22.23.2` | ★这是实测通过的版本★（README 写 24.14.0，但没有实测记录） |
+| `NODE_VERSION` | `22.23.2` | 实测通过的版本（README 写 24.14.0 无实测记录）。
+★2026-09-26：CF 默认的 Node 24.18.0 也把八步链全绿跑完了★ —— 这个 pin 是为了让构建可复现，不是硬要求 |
 
 `BLOG_SITE_ORIGIN` 建议显式设成 `https://blog.cloudwing.top`（默认值已经是它）。
 
