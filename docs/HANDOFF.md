@@ -13,7 +13,7 @@
 
 | 对象 | 位置 | 说明 |
 | --- | --- | --- |
-| **新站实施现场** | 本仓库，分支 `migration/cloudwing` | 相对上游 `007313b` 共 **19 个提交**（含 §3.1 的 4 个） |
+| **新站实施现场** | 本仓库，分支 `migration/cloudwing` | 相对上游 `007313b` 的提交清单见 §3 / §3.1 |
 | 上游模板 | `github.com/JesseLee-CN/rhinelab-blog-theme` | ⚠️ `git remote -v` 里的 `origin` **指的就是上游**，别直接 push |
 | 旧站（内容来源） | `D:\deep seek workplace\endfield-blog` | **只读**，不修改 |
 | 已放弃的旧基座尝试 | `cloudwing-terminal/` | 13 个提交留作对照，**不要再推进** |
