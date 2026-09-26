@@ -21,8 +21,8 @@ async function fontFiles(relativeDir) {
   return found.sort();
 }
 
-/** 音乐目录：音频、封面、歌词整棵树都收（播放器按 content/music.json 里的 id 取用）。 */
-async function musicFiles(relativeDir) {
+/** 整棵子树都收录（音乐素材、档案下载件都是这种：逐个文件登记，不挑扩展名）。 */
+async function treeFiles(relativeDir) {
   const dir = resolve(source, relativeDir);
   const found = [];
   for (const entry of await readdir(dir, { withFileTypes: true, recursive: true })) {
@@ -55,7 +55,11 @@ const WHITELIST = [
   // 音乐播放器（src/features/music-player/）的曲目素材：音频、封面、歌词。
   // 曲目数据在 content/music.json；这里只管文件。整棵树都要登记 —— lab 的 publicDir
   // 是 .generated/lab-public，只收白名单里的文件，漏登记就是"播放器没声音"。
-  ...(await musicFiles("music")),
+  ...(await treeFiles("music")),
+  // 档案下载件（scripts/blog/export-archives.mjs 生成在 public/archives/）：整棵收录，
+  // 最终落在 /lab/archives/ —— 详情面板的导出入口按槽位编号/图集名取用。
+  // ⚠️ 漏登记 = 导出按钮 404；而且 lab-public 每次重建，不在白名单里的会被 rm 掉。
+  ...(await treeFiles("archives")),
   "licenses/rolling-number.txt",
 ];
 

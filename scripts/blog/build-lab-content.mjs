@@ -17,7 +17,9 @@ const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const postsDir = resolve(root, "content/posts");
 const collectionsFile = resolve(root, "content/lab-collections.json");
 const outFile = resolve(root, ".generated/lab-content.json");
-const SITE = process.env.BLOG_SITE_ORIGIN || "https://example.com";
+// 与 apps/blog/astro.config.mjs 的默认保持一致：档案里的 source（导出的 TXT 也会写它）
+// 必须是本站的 origin，否则下载下来的记录里"原文链接"指向 example.com。
+const SITE = process.env.BLOG_SITE_ORIGIN || "https://cloudwing.top";
 const SLOTS_PER_THEME = 8;
 
 const now = process.env.BUILD_NOW ? new Date(process.env.BUILD_NOW) : new Date();

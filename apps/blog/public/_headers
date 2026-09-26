@@ -32,5 +32,9 @@
 /pagefind/*
   Cache-Control: public, max-age=3600
 
+# 档案下载件（TXT/ZIP）：文件名不含哈希、内容会随档案变化 → 短 TTL。
+/lab/archives/*
+  Cache-Control: public, max-age=3600
+
 /*.html
   Cache-Control: public, max-age=0, must-revalidate

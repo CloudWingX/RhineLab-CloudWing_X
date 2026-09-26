@@ -144,8 +144,25 @@ if (await exists(resolve(dist, "lab/index.html"))) {
   for (const file of ["sw.js", "manifest.webmanifest", "pwa-build.json"]) {
     if (await exists(resolve(dist, "lab", file))) fail(`dist/lab/${file} 不应存在（MVP 关闭 PWA）`);
   }
-  if (await exists(resolve(dist, "lab/archives"))) {
-    fail("dist/lab/archives 不应存在（演示档案已退役）");
+  // 档案下载件：每个文章槽位一份 TXT、每个去重图集一个 ZIP（音乐档案直接下 mp3，不生成文件）。
+  // ★期望值取自生成器的产物★：槽位编号与图集键都是它推导的，在这里再算一遍等于把那套补位规则
+  // 抄成两份。这一条同时看住两件事 —— 导出脚本没跑，以及 prepare:assets 的白名单漏登记
+  // （lab-public 每次重建，不在白名单里的会被 rm 掉，症状是导出按钮 404）。
+  const labContentFile = resolve(root, ".generated/lab-content.json");
+  if (await exists(labContentFile)) {
+    const lab = JSON.parse(await read(labContentFile));
+    const archiveDir = resolve(dist, "lab/archives");
+    const expectedArchives = [
+      ...lab.records.filter((record) => record.kind === "post").map((record) => `CLOUDWING-${record.id}.txt`),
+      ...Object.keys(lab.albumImages ?? {}).map((albumKey) => `${albumKey}-images.zip`),
+    ];
+    for (const name of expectedArchives) {
+      if (!(await exists(resolve(archiveDir, name)))) {
+        fail(`缺少档案下载件：dist/lab/archives/${name}（导出脚本没跑，或 prepare:assets 白名单漏登记）`);
+      }
+    }
+  } else {
+    fail("缺少 .generated/lab-content.json：无法核对档案下载件（先跑 npm run generate:lab-content）");
   }
 }
 
