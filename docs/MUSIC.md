@@ -15,7 +15,7 @@
 | --- | --- |
 | 数据源 | `content/music.json`（由 `scripts/migrate-content.mjs` 从旧站 `src/site.ts` 的 `MUSIC` 数组生成） |
 | 素材 | `public/music/`：`<id>.mp3` + `covers/<id>.jpg` + `lyrics/<id>.lrc`（共约 43MB） |
-| 生成 | `scripts/blog/build-lab-content.mjs` 把每首歌转成一条 `kind: "music"` 的**档案记录**并入 `records`，类别为 `音乐`；同时校验音频与封面真实存在 |
+| 生成 | `scripts/blog/build-lab-content.mjs` 把每首歌转成 `kind: "music"` 的**档案记录**并入 `records`，类别为 `音乐`；**一列 8 个槽位**（4 首按模板规则循环补位，与文章主题、影像大类同一做法），同时校验音频与封面真实存在 |
 | 构建管线 | `scripts/blog/prepare-assets.mjs` 白名单加 `musicFiles("music")`（lab 的 publicDir 只收白名单，漏登记＝没声音） |
 | 适配 | `src/blog-adapter.ts`（`LabMusicSlot`，判别联合的一支）→ `src/data.ts`（`musicTracks`） |
 | 模块 | `src/features/music-player/` |
@@ -81,6 +81,9 @@ CF Pages 的静态资产**不支持 Range 请求**，浏览器媒体栈会把 se
 - **键盘**：空格 播放/暂停，`←` / `→` 前后 5 秒（焦点在输入控件上时不接管），`ESC` 关闭。
 - **关闭**：暂停播放 → 把背景 stem 交还 → 焦点归还入口按钮。退出动效有 600ms 兜底
   （动效完成回调来自 `animation.finished`，被节流的合成器可能永远不推进它）。
+- **详情面板与文章档案同一版式**：音乐档案详情走 `renderDetail` 的三页签结构
+  （01 概述 / 02 播放参数 / 03 访问日志），摘要段落落在 `.tab-panel` 内、套用模板排版；
+  左下档案编号块保留 `NO.xxx`，隐藏两项依赖三维模型的控件（DRAG TO INSPECT / 360° 查看文档模型）。
 
 ## 5. 验证
 

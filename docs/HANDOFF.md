@@ -13,7 +13,7 @@
 
 | 对象 | 位置 | 说明 |
 | --- | --- | --- |
-| **新站实施现场** | 本仓库，分支 `migration/cloudwing` | 相对上游 `007313b` 共 **14 个提交** |
+| **新站实施现场** | 本仓库，分支 `migration/cloudwing` | 相对上游 `007313b` 共 **19 个提交**（含 §3.1 的 4 个） |
 | 上游模板 | `github.com/JesseLee-CN/rhinelab-blog-theme` | ⚠️ `git remote -v` 里的 `origin` **指的就是上游**，别直接 push |
 | 旧站（内容来源） | `D:\deep seek workplace\endfield-blog` | **只读**，不修改 |
 | 已放弃的旧基座尝试 | `cloudwing-terminal/` | 13 个提交留作对照，**不要再推进** |
@@ -25,7 +25,7 @@ git remote add origin <你自己的仓库地址>
 git push -u origin migration/cloudwing
 ```
 
-## 3. 已完成（14 个提交，从新到旧）
+## 3. 已完成（下表为上一轮的功能提交，从新到旧；本轮的 4 个见 §3.1）
 
 | 提交 | 做了什么 |
 | --- | --- |
@@ -46,6 +46,36 @@ git push -u origin migration/cloudwing
 
 **内容基数**：26 篇文章（12 篇旧文 + 14 天更新记录）、1 个页面（`/about/`）、5 个策展主题、
 **132 张影像**（进阵列的两列）、**4 首曲目**（进阵列的一列）。
+
+### 3.1 本轮修订（2026-09-26，4 个提交）
+
+提交：`212747b`（取景原点）→ `c4881ca`（每列 8 槽）→ `fe9f822`（详情版式）→ 随后的本次文档同步。
+
+按「三维档案的样式要忠于模板」修了三处，全部落在前面那两个新功能上：
+
+1. **三维阵列取景错位（真 bug）** —— `src/scene.ts` 的实例排布仍写死 `(lane - 2)`，而 `cellPosition`
+   / `trackPosition` / `center.lane` 已改用 `LANE_CENTER = (CONTENT_COLUMNS - 1) / 2 = 3.5`：
+   阵列实例与"被抽出的模型"整体错位 **1.5 列（7.8 世界单位）**，开场（`cinematic`）镜位锚定在模型上，
+   所以整段开场也偏 1.5 列。模板的坐标原点本来就是**参考阵列（原片 5 列）的中心 = 2**，
+   `(C-1)/2` 只有在 C=5 时才等于 2，这次改写等于把原点带偏了。
+   → `archive-loop.ts` 新增 `REFERENCE_COLUMNS = 5`，`LANE_CENTER = 2`（**不再由列数推导**）；
+   `scene.ts` 6 处泳道坐标（含实例排布）统一读它；`i >= 160` 写成 `REFERENCE_COLUMNS * LOOP_ROWS`。
+2. **每列槽位数不均** —— 模板的 `SLOTS_PER_THEME = 8` 会循环补位，所以**每列恰好 8 槽**；
+   新列没走这条规则（游戏影像 3 / 影像图集 2 / 音乐 4，而 2/3 与行周期 32 不整除）。
+   → `build-lab-content.mjs` 对影像/音乐同规则补位：**每列 8 槽、共 64 条**。
+   ★图片不复制 8 遍★：产物顶层新增 `albumImages`（按 `albumKey` 索引，132 条只存一份），
+   槽位只带 `albumKey`；`blog-adapter.ts` 读入后把**同一份数组引用**挂到每个槽位
+   （否则 132 条会膨胀到 413 条、首屏约 +42KB；实测 JSON 57KB → 66KB）。
+3. **详情面板与模板不一致** —— `renderAlbumDetail` / `renderMusicDetail` 把摘要放进了一个裸 `<p>`，
+   而它不在 `.tab-panel` 内（`style.css` 里唯一的段落规则是 `.tab-panel p`，15px / 行高 1.95 / 两端对齐），
+   于是掉回浏览器默认排版；面板也没有模板的 01/02/03 页签与下划线。
+   → 两套模板合并进 `renderDetail`：三类档案**共用同一版式**（kicker / 标题 / 元数据 / 三页签 /
+   操作区 / 脚注），只有元数据字段、页签标签与正文、操作按钮按 `kind` 分叉；恢复左下 `.object-caption`
+   的 `NO.xxx`（隐藏依赖三维模型的 DRAG TO INSPECT / 360° 两项）。
+
+**本轮验证（沙箱内可做的部分）**：`tsc --noEmit` **0 报错**；`check:features`、`check:content` 通过；
+生成器重跑输出「每列 8 槽 / 64 条」；17 条断言全过（原点 = 2、无写死原点、每列 8 槽、8 \| 32、
+同一图集共享 `images` 引用、总数仍是 132、页签结构就位）。**`npm run build` 与浏览器目视未做**（见 §6）。
 
 ## 4. 未完成
 
@@ -68,8 +98,11 @@ git push -u origin migration/cloudwing
 1. **音频能不能真的响**。沙箱里无头 Chrome 的媒体元素表现不一致：同一页面里内联写一遍同样的
    Blob 播放流程能播、时钟正常推进，但播放器里的元素始终 `readyState=0`。**无法判定是环境还是代码**。
    → 真机上打开一首歌的档案详情、点「播放」；不响的话看浮层左下角的状态文案（它现在会显示失败原因）。
-2. **三维阵列 8 列的外观**。页面持续跑 rAF 动画，截图会卡死，所以只能目视：
-   第 8 列（音乐）加进来后，阵列的边缘与居中是否仍然齐整（列数是偶数、`LANE_CENTER` 因此是 3.5）。
+2. **三维阵列 8 列的外观**。页面持续跑 rAF 动画，截图会卡死，所以只能目视。
+   ★**先看这一项**★：第 8 列（音乐）加进来后，`LANE_CENTER` 曾被改成 3.5、与实例排布里写死的 2
+   冲突，阵列与抽出的模型错位 1.5 列 —— 已在 §3.1 修掉，但**修完仍需目视确认**：
+   选中的档案卡片要正好落在抽出的模型下方居中；左右切列时整个阵列平移，边缘不应跳。
+   另外确认每列刻度条都是 **8 个**（`#file-ticks`）。
 
 ## 6. 构建与验证
 
@@ -82,9 +115,15 @@ npm run preview -- --open   # 预览真实产物 dist/
 
 七步链：`check:content → check:features → build:blog → build:lab → build:redirects → search:index → check:site`
 
-**当前验证状态**（2026-09-26 深夜，Linux 侧）：`typecheck` 0 报错、`check:features` 通过
+**当前验证状态（提交态）**（2026-09-26 深夜，Linux 侧）：`typecheck` 0 报错、`check:features` 通过
 （3 个功能：reader / album-viewer / music-player）、`npm run build` **exit 0**、
 `check:site` 通过、dist 46 页。
+
+**本轮修订（§3.1，已提交）的验证状态**：`tsc --noEmit` **0 报错**、`check:features` / `check:content`
+通过、生成器断言 17 条全过。★**`npm run build` 没跑**★ —— 一轮沙箱侧磁盘被别的会话占满（`/tmp` 里
+`cft` / `rl` / `cwbase` / `serve` 共约 1.6GB，属主是 `nobody`，无 sudo 删不掉、无法 `npm ci`），
+且仓库里的 `node_modules` 是 Windows 装的、不能在 Linux 上用来构建。
+→ **接手后请在 Windows 侧跑一次 `npm run build`（或双击 `打开预览.cmd`）并完成 §5 的目视。**
 
 **模块化纪律**：`src/features/` 下的功能靠"宿主端口 + 门面"接核心，改完必须跑
 `npm run check:features`（它会抓出清单不一致、跨功能穿透、孤儿文件 —— 本轮它真的抓到过一次）。

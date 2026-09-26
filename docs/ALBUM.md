@@ -1,7 +1,7 @@
 # 影像档案（图集）与查看器（album-viewer）
 
-在 `/lab/` 三维阵列里，**游戏影像** 与 **影像图集** 是两列真实存在的档案（与 5 个文章主题列并列，
-共 7 列）—— 用 `←` `→` 切列就能走到，按 `ENTER`／`ACCESS FILE` 打开档案详情，详情里点
+在 `/lab/` 三维阵列里，**游戏影像** 与 **影像图集** 是两列真实存在的档案（与 5 个文章主题列、
+1 个音乐列并列，共 8 列）—— 用 `←` `→` 切列就能走到，按 `ENTER`／`ACCESS FILE` 打开档案详情，详情里点
 **「查看详情」** 会在原地弹出一个居中窗口，逐张浏览该图集的影像。窗口复用三个系统弹框
 （ARCHIVE INDEX / SAVED / SYSTEM）与阅读层的同一套表面，因此窗口盒、遮罩、进出动画与它们逐像素一致。
 
@@ -15,33 +15,40 @@
 | --- | --- |
 | 大类 | 档案记录的 `category`：`游戏影像` / `影像图集` |
 | 一个档案 = 一个小类（图集） | 一条 `kind: "album"` 的档案记录，例如 `X-042`（Peak） |
-| 档案记录页面 | `#detail-ui` 档案详情面板（`renderAlbumDetail`） |
+| 档案记录页面 | `#detail-ui` 档案详情面板（`renderDetail` → 影像分支，与文章/音乐**共用同一版式**） |
 | 查看详情按钮 | 详情面板操作区的 `[data-action="open-album-viewer"]` |
 | 图像界面 | 本模块的居中浮层 |
 
 阵列的列顺序 = `lab-content.json` 的 `columns`：`技术笔记 / 建站日志 / 更新档案 / 版本演进 / 归档总览 /
-游戏影像 / 影像图集`。**列数不写死在代码里**（`archive-loop.ts` 从 `archiveColumns.length` 推导）。
+游戏影像 / 影像图集 / 音乐`。**列数不写死在代码里**（`archive-loop.ts` 从 `archiveColumns.length` 推导）；
+**每一列都恰好 8 个槽位**（文章主题、影像大类、音乐同一规则，不足由生成器循环补位）。
 
 ## 2. 数据从哪来
 
 图集数据在 `content/gallery.json`（与 `content/lab-collections.json` 同级，属"内容侧唯一数据源"）：
 `categories` 是两个大类，`items` 是 132 条影像。构建时 `scripts/blog/build-lab-content.mjs` 把它们
-转成**和文章档案同一个 `records` 数组**里的记录（`kind: "album"`，编号 `X-041`–`X-045`，
-带 `count / dateFrom / dateTo / cover / images[]`）。因此：
+转成**和文章档案同一个 `records` 数组**里的记录（`kind: "album"`）；**一列 8 个槽位**（与文章主题
+同一补位规则），所以 5 个图集铺成 16 个槽位（`X-041`–`X-056`），同一图集在一列里会出现多次。
+
+★影像本体不进槽位★：槽位只带 `albumKey`（= 图集名）与 `count / dateFrom / dateTo / cover`，
+图片单独放在产物顶层的 `albumImages`（按 `albumKey` 索引，**整份产物只存一次**）——
+若每个槽位各带一份 `images[]`，132 条会膨胀到 413 条（首屏 JSON 约 +42KB）。
+`src/blog-adapter.ts` 读入后把**同一份数组引用**挂到每个槽位上，所以消费方看到的
+`LabAlbumSlot.images` 照旧、内存里也只有一份。因此：
 
 - 阵列的列由 `category` 决定（`src/data.ts` 的 `fileLocation`），影像大类自然成为第 6、7 列；
 - 索引筛选、检索、详情面板、阅读层**都不需要为影像档案另写一套分支**——只有真正不同的地方
-  （详情模板、操作按钮）才按 `kind` 分叉。
+  （页签正文、操作按钮）才按 `kind` 分叉。
 
 | 层 | 位置 |
 | --- | --- |
 | 数据源 | `content/gallery.json` |
 | 大类划分表（显式） | `scripts/migrate-content.mjs` 的 `ALBUM_CATEGORIES` |
-| 生成 | `scripts/blog/build-lab-content.mjs` → `.generated/lab-content.json` 的 `records` + `columns` |
-| 适配与校验 | `src/blog-adapter.ts`（`LabPostSlot` / `LabAlbumSlot` 判别联合，按 `kind` 分别校验） |
+| 生成 | `scripts/blog/build-lab-content.mjs` → `.generated/lab-content.json` 的 `records` + `columns` + `albumImages` |
+| 适配与校验 | `src/blog-adapter.ts`（`LabPostSlot` / `LabAlbumSlot` / `LabMusicSlot` 判别联合，按 `kind` 分别校验；影像档用 `albumKey` 到 `albumImages` 取图片并挂成共享引用） |
 | 聚合导出 | `src/data.ts`（`records` / `albums` / `albumCategories` / `categories` / `archiveColumns`） |
-| 轮播泳道 | `src/archive-loop.ts`（`CONTENT_COLUMNS` / `LOOP_COLUMNS` / `LANE_CENTER` 全部由列数推导） |
-| 详情模板 | `src/main.ts`（`renderDetail` → `renderAlbumDetail`） |
+| 轮播泳道 | `src/archive-loop.ts`（`CONTENT_COLUMNS` / `LOOP_COLUMNS` 由列数推导；**`LANE_CENTER` 固定是参考阵列（原片 5 列）的中心 2，不随列数变**） |
+| 详情模板 | `src/main.ts`（`renderDetail`，三类档案共用同一版式：kicker / 标题 / 元数据 / 三页签 / 操作区 / 脚注） |
 | 查看器模块 | `src/features/album-viewer/` |
 
 ## 3. 模块与职责
@@ -94,12 +101,13 @@ npm run build            # 统一构建（含 check:features）
 ```
 
 数据侧的断言在生成层（`build-lab-content.mjs`，失败即中断构建）：每个影像 `src` 必须真实存在、
-`images.length === count`、图集张数合计 === `items` 总数（132）。适配层另按 `kind` 校验：
-`post` 必须有 `postId`/`href`；`album` 必须有非空 `images` 且 `category` 落在 `columns` 内。
+图集张数合计 === `items` 总数（132）。适配层另按 `kind` 校验：`post` 必须有 `postId`/`href`；
+`album` 的 `albumKey` 必须在 `albumImages` 里、`images.length === count`、`category` 落在 `columns` 内。
 
-**无头 Chrome 端到端（13 项断言，全过、零 JS 异常）**：列总数显示 `07`；`←`/`→` 依次经过
-`技术笔记 → 建站日志 → 更新档案 → 版本演进 → 归档总览 → 游戏影像 → 影像图集`；
-索引筛选项 8 个；「影像图集」列出 2 条；点索引行打开图集详情（含「9 张影像」、操作区是
-「查看详情」而非「阅读全文」）；查看器打开、缩略图 9 张、序号 `001 / 009`、可关闭。
+**列结构的断言（生成后可直接核对）**：`columns.length === 8`、**每列恰好 8 槽**、共 64 条；
+同一个图集的多个槽位**共享同一份 `images` 数组引用**（在 `data.albums` 里按 `albumKey` 分组比 `===`）。
 
+⚠️ 上一轮的无头 Chrome 端到端（列总数显示 `07`）是在**每列槽位数不均**的形态下跑的，
+改成每列 8 槽后需要重跑。`←`/`→` 的列序仍为
+`技术笔记 → 建站日志 → 更新档案 → 版本演进 → 归档总览 → 游戏影像 → 影像图集 → 音乐`。
 ⚠️ **三维阵列本身的外观无法在沙箱里验证**（持续 rAF 动画会让截图卡死），只能靠真机目视。
