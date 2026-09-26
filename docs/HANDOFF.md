@@ -6,24 +6,22 @@
 
 ## 1. 一句话现状
 
-旧站 `endfield-blog` 的**内容已全部迁入**、**主要功能已搬了三分之二**；
-本仓库（新基座）**本地构建全绿、本地预览可用**；**从未部署过**。
+旧站 `endfield-blog` 的**内容已全部迁入**、**五个功能已全部搬完**；
+本仓库（新基座）**本地构建全绿、本地预览可用**；
+**已于 2026-09-26 首次部署到 Cloudflare Pages** → `https://www.cloudwing.top`（见 §4.3）。
 
 ## 2. 仓库、分支与远程
 
 | 对象 | 位置 | 说明 |
 | --- | --- | --- |
 | **新站实施现场** | 本仓库，分支 `migration/cloudwing` | 相对上游 `007313b` 的提交清单见 §3 / §3.1 |
-| 上游模板 | `github.com/JesseLee-CN/rhinelab-blog-theme` | ⚠️ `git remote -v` 里的 `origin` **指的就是上游**，别直接 push |
+| **本站仓库（origin）** | `github.com/CloudWingX/CloudWing_X` | ★**必须保持私有**★ —— 仓库里有 132 张游戏截图、4 首商业 mp3（约 42MB）、21 个商标图标，都是构建必需的输入 |
+| 上游模板（upstream） | `github.com/JesseLee-CN/rhinelab-blog-theme` | ⚠️ 它的 **push 地址已被改成 `DISABLED_UPSTREAM_IS_READ_ONLY`**（照模板的 `ops/setup-remotes.sh`），物理上推不上去 |
 | 旧站（内容来源） | `D:\deep seek workplace\endfield-blog` | **只读**，不修改 |
 | 已放弃的旧基座尝试 | `cloudwing-terminal/` | 13 个提交留作对照，**不要再推进** |
 
-要推送得先加自己的远程：
-```bash
-git remote rename origin upstream
-git remote add origin <你自己的仓库地址>
-git push -u origin migration/cloudwing
-```
+远程**已经配好**（`origin` = 本站仓库、`upstream` = 上游模板且 push 被禁用），
+要推送只需在仓库根**双击 `推送代码.cmd`**（或跑 `git push -u origin migration/cloudwing`）。
 
 ## 3. 已完成（下表为上一轮的功能提交，从新到旧；本轮的提交见 §3.1 / §3.2）
 
@@ -190,10 +188,16 @@ git push -u origin migration/cloudwing
 2. ~~两个旧 URL 的处置未定~~ —— **已定**（2026-09-26）：`/gallery/`、`/music/`、`/nav/`
    三个旧地址一律 **301 到 `/lab/`**（它们现在都是阵列里的列）。`build-redirects.mjs` 里的
    `PENDING` 清单因此清空。
-3. **从未部署**：CF Pages 的配置（`wrangler.toml`、`_headers`、`_redirects`）都在仓库里备好了，
-   但控制台还没建项目。★操作步骤与**部署后逐项核对清单**见 [DEPLOY-CF.md](DEPLOY-CF.md)★
-   （控制台要设的三项、`git remote` 先改成自己的仓库、以及一份覆盖入口/阵列/浮层/响应头的清单）。
-   旧地址的处置在 §4.2 已定（三个旧栏目 301 到 `/lab/`），**不再是部署的阻塞项**。
+3. **已首次部署（2026-09-26）** → `https://www.cloudwing.top`（CF Pages，Git 集成）。
+   完整操作与核对清单见 [DEPLOY-CF.md](DEPLOY-CF.md)。★还剩一步没做★：
+   **CF 环境变量里要设 `BLOG_SITE_ORIGIN=https://www.cloudwing.top` 并重新部署** —— 第一版线上
+   部署的 canonical / og:url 指向了 `https://cloudwing.top`（= **旧站**的地址），等于让新站每页
+   声明"正本是旧站那一页"；四处 origin 默认值已修（见 §3.4 末），但线上要重新构建才生效。
+   ⚠️ **本站住在 `www`、apex 是旧站，两个站并存**（站长定）；并存期间新站文章与旧站的同名文章
+   构成重复内容，彻底解决要等旧站下线或整体 301。
+   ⚠️ 另记一个实测坑：CF Pages 建项目**必须选 Pages 不是 Workers**（Workers 会跑
+   `npx wrangler deploy`，在 npm workspace 根目录报"application detection"失败）——见
+   DEPLOY-CF.md §1.9。
 4. **延后项**：双环标志与开场字形表的重做（站长定"等网页完成后再说"）。
 
 ## 5. ⚠️ 待真机确认（沙箱里验不了的两处）
