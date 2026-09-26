@@ -1,5 +1,20 @@
 # 部署到 Cloudflare Pages
 
+## 0. 建项目时照着填（TL;DR）
+
+| 控制台项 | 填什么 |
+| --- | --- |
+| 连接 Git | GitHub → 授权 Cloudflare Pages ★私有仓库要手动加进授权范围★（见 §1.5） |
+| 选择仓库 | `CloudWingX/CloudWing_X` |
+| 生产分支 | `migration/cloudwing` |
+| 构建命令 | `npm run build` |
+| 构建输出目录 | `dist` |
+| 框架预设 | **None / 无** —— 本项目是 npm workspace + 自定义构建链，不要让预设插手 |
+| 环境变量 | `NODE_VERSION` = `22.23.2`（可选 `BLOG_SITE_ORIGIN` = `https://cloudwing.top`） |
+
+等构建跑完（约 3–5 分钟）→ 拿到 `*.pages.dev` 域名 → 接自定义域名 → 按 §4 的清单核对。
+
+
 本站是纯静态产物（`dist/`），托管在 CF Pages。**仓库侧的配置都已就绪**，这份文档记的是：
 控制台要设什么、部署前必须先做什么、以及**部署后要逐项核对什么**。
 
