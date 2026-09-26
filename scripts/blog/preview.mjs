@@ -70,39 +70,66 @@ async function findFile(urlPath) {
 /** The account API is an optional component and this preview has no backend. */
 const SESSION_PATHS = ["/api/auth/session", "/lab/api/auth/session"];
 
-createServer(async (request, response) => {
-  const urlPath = (request.url ?? "/").split("?")[0];
-  // 账号岛在每个页面查询一次登录态。静态预览没有账号服务，这里只回答
-  // 「未登录」，让页头渲染真实的未登录状态，而不是在控制台留下一个 404。
-  // 其余 /api/auth/* 一律真实 404——预览不假装登录可用。
-  if (SESSION_PATHS.includes(urlPath)) {
-    response.writeHead(200, {
-      "Content-Type": MIME[".json"],
-      "Cache-Control": "no-store",
-    });
-    response.end('{"authenticated":false}');
-    return;
-  }
-  const file = await findFile(request.url ?? "/");
-  if (!file) {
-    const notFound = join(dist, "404.html");
-    try {
-      await stat(notFound);
-      response.writeHead(404, { "Content-Type": MIME[".html"] });
-      createReadStream(notFound).pipe(response);
-    } catch {
-      response.writeHead(404, { "Content-Type": MIME[".txt"] });
-      response.end("404 Not Found\n");
+function createPreviewServer() {
+  return createServer(async (request, response) => {
+    const urlPath = (request.url ?? "/").split("?")[0];
+    // 账号岛在每个页面查询一次登录态。静态预览没有账号服务，这里只回答
+    // 「未登录」，让页头渲染真实的未登录状态，而不是在控制台留下一个 404。
+    // 其余 /api/auth/* 一律真实 404——预览不假装登录可用。
+    if (SESSION_PATHS.includes(urlPath)) {
+      response.writeHead(200, {
+        "Content-Type": MIME[".json"],
+        "Cache-Control": "no-store",
+      });
+      response.end('{"authenticated":false}');
+      return;
     }
-    return;
-  }
-  response.writeHead(200, {
-    "Content-Type": MIME[extname(file)] ?? "application/octet-stream",
+    const file = await findFile(request.url ?? "/");
+    if (!file) {
+      const notFound = join(dist, "404.html");
+      try {
+        await stat(notFound);
+        response.writeHead(404, { "Content-Type": MIME[".html"] });
+        createReadStream(notFound).pipe(response);
+      } catch {
+        response.writeHead(404, { "Content-Type": MIME[".txt"] });
+        response.end("404 Not Found\n");
+      }
+      return;
+    }
+    response.writeHead(200, {
+      "Content-Type": MIME[extname(file)] ?? "application/octet-stream",
+    });
+    createReadStream(file).pipe(response);
   });
-  createReadStream(file).pipe(response);
-}).listen(port, "127.0.0.1", () => {
-  const url = `http://127.0.0.1:${port}/`;
-  console.log(`预览 ${url} （静态 dist/，未知路径返回真实 404）`);
-  console.log("账号接口未接入本预览：登录态固定为未登录，登录表单会提示服务不可用。");
-  if (openBrowser) openInBrowser(url);
-});
+}
+
+/**
+ * 启动预览。
+ *
+ * ★端口被占用时自动顺延★：`打开预览.cmd` 是双击入口，上一次的预览还开着时端口就占着，
+ * 旧写法会直接抛 EADDRINUSE 的栈（对站长毫无意义）。这里顺延到下一个端口，
+ * 并说明换端口的原因；真的连试十个都占用才报错退出。
+ */
+function listen(port, attemptsLeft = 10) {
+  const server = createPreviewServer();
+  server.once("error", (error) => {
+    if (error.code === "EADDRINUSE" && attemptsLeft > 0) {
+      if (attemptsLeft === 10) {
+        console.log(`端口 ${port} 已被占用（多半是上一次的预览还开着）——换一个端口。`);
+      }
+      listen(port + 1, attemptsLeft - 1);
+      return;
+    }
+    console.error(`无法启动预览：${error.message}`);
+    process.exit(1);
+  });
+  server.listen(port, "127.0.0.1", () => {
+    const url = `http://127.0.0.1:${port}/`;
+    console.log(`预览 ${url} （静态 dist/，未知路径返回真实 404）`);
+    console.log("账号接口未接入本预览：登录态固定为未登录，登录表单会提示服务不可用。");
+    if (openBrowser) openInBrowser(url);
+  });
+}
+
+listen(port);
