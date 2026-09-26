@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 
 export const GET: APIRoute = ({ site }) => {
-  const origin = site ?? new URL("https://cloudwing.top");
+  const origin = site ?? new URL("https://blog.cloudwing.top");
   const body = [
     "User-agent: *",
     "Allow: /",

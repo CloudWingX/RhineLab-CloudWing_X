@@ -135,7 +135,8 @@ git push -u origin migration/cloudwing
 暂存进了 `.generated/lab-public/archives/`。⚠️ 浏览器里真的点下载、以及三项收藏行为，仍需真机确认。
 
 **顺带对齐**：`build-lab-content.mjs` 的 origin 默认值原本是 `example.com`，而站点与
-`astro.config.mjs` 的默认是 `cloudwing.top` —— 导出的 TXT 里"原文链接"因此指向 example.com，已改齐。
+`astro.config.mjs` 的默认是站点 origin —— 导出的 TXT 里"原文链接"因此指向 example.com，已改齐。
+  （2026-09-26 末：站点定在子域 `blog.cloudwing.top`，四处 origin 默认值一并改成它。）
 
 ### 3.5 日历页落地（2026-09-26）
 

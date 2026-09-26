@@ -14,5 +14,5 @@ compatibility_date = "2026-09-26"
 #   NODE_VERSION   22.23.2
 #                 （README 写 24.14.0，但实测 Node 22.23.2 下 npm ci 与 npm run build 均通过；
 #                   选已实测的版本更稳。要改的话两处一起改。）
-#   BLOG_SITE_ORIGIN（可选）https://cloudwing.top
+#   BLOG_SITE_ORIGIN（可选）https://blog.cloudwing.top
 #                 （astro.config.mjs 的默认值已改成它，不设也对。）

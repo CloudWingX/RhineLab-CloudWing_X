@@ -10,7 +10,8 @@
 | 构建命令 | `npm run build` |
 | 构建输出目录 | `dist` |
 | 框架预设 | **None / 无** —— 本项目是 npm workspace + 自定义构建链，不要让预设插手 |
-| 环境变量 | `NODE_VERSION` = `22.23.2`（可选 `BLOG_SITE_ORIGIN` = `https://cloudwing.top`） |
+| 环境变量 | `NODE_VERSION` = `22.23.2`；`BLOG_SITE_ORIGIN` = `https://blog.cloudwing.top`（默认值已是它，显式设一遍更稳） |
+| 自定义域名 | `blog.cloudwing.top`（见 §1.6） |
 
 等构建跑完（约 3–5 分钟）→ 拿到 `*.pages.dev` 域名 → 接自定义域名 → 按 §4 的清单核对。
 
@@ -27,7 +28,7 @@
 | 缓存与安全响应头 | `apps/blog/public/_headers` | Astro 会把 `public/` 原样复制到产物根 → `dist/_headers` |
 | 重定向表 | 由 `scripts/blog/build-redirects.mjs` 生成 | → `dist/_redirects`（**不要手写**，生成器独占） |
 | 项目配置 | `wrangler.toml` | 项目名 + 产物目录 + `npx wrangler pages dev dist` 本地预览 |
-| 站点 origin | `apps/blog/astro.config.mjs` | 默认 `https://cloudwing.top`（`BLOG_SITE_ORIGIN` 可覆盖） |
+| 站点 origin | `apps/blog/astro.config.mjs` | 默认 `https://blog.cloudwing.top`（`BLOG_SITE_ORIGIN` 可覆盖） |
 
 ★`git remote` 已经理清★：`origin` = 本项目的仓库，`upstream` = 上游模板且 **push 地址被改成
 `DISABLED_UPSTREAM_IS_READ_ONLY`**（照模板 `ops/setup-remotes.sh` 的做法，物理上推不上去）。
@@ -57,6 +58,19 @@ git push -u origin migration/cloudwing    # 这个分支会成为默认分支
 ★私有仓库还要在 CF 的 GitHub App 里授权★：控制台建项目时选 GitHub —— 若仓库列表里看不到它，
 去 GitHub 的 Settings → Applications → Cloudflare Pages，把该仓库加进授权范围。
 
+## 1.6 域名：本站挂在子域 `blog.cloudwing.top`
+
+★apex `cloudwing.top` 已被另一个站占用★ —— 一个主机名只能指向一个站，所以本站用子域
+（CF 文档：子域不要求域名是 CF zone，加一条 CNAME 即可）。
+
+在 CF 控制台：**项目 → Custom domains → Set up a custom domain → 填 `blog.cloudwing.top`**。
+
+- 域名若已托管在 Cloudflare：确认后会**自动**建好 CNAME 记录 ✓
+- 域名在别处：去 DNS 服务商加一条 CNAME，指向 `<项目名>.pages.dev` ✓
+
+★这一步不做也可以先跑（`<项目名>.pages.dev` 直接能看）★，但**正式对外之前一定要接上** ——
+否则 canonical / sitemap 指向 `blog.cloudwing.top` 而实际访问在 pages.dev，等于给搜索引擎两个地址。
+
 ## 2. 控制台要设的三项
 
 | 项 | 值 | 为什么 |
@@ -65,7 +79,7 @@ git push -u origin migration/cloudwing    # 这个分支会成为默认分支
 | 输出目录 | `dist` | |
 | `NODE_VERSION` | `22.23.2` | ★这是实测通过的版本★（README 写 24.14.0，但没有实测记录） |
 
-可选：`BLOG_SITE_ORIGIN`（不设即用默认的 `https://cloudwing.top`）。
+`BLOG_SITE_ORIGIN` 建议显式设成 `https://blog.cloudwing.top`（默认值已经是它）。
 
 **依赖安装是干净的**：全仓库**没有任何 `postinstall` / `prepare`**，所以 CF 的 `npm ci`
 不会跑额外的构建或下载（`playwright` 的包清单里没有安装期脚本 —— 它不再自动下载浏览器，
