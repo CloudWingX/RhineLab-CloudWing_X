@@ -1,4 +1,4 @@
-# 交接记录（截至 2026-09-26 深夜）
+# 交接记录（2026-09-26 · 已首次部署）
 
 > 这份是**接手入口**：先读它，再按需读 [FEATURES.md](FEATURES.md)（模块边界）、
 > [BUILD.md](BUILD.md)（构建与部署）、[UPSTREAM.md](UPSTREAM.md)（与上游的关系）。
@@ -6,9 +6,15 @@
 
 ## 1. 一句话现状
 
-旧站 `endfield-blog` 的**内容已全部迁入**、**五个功能已全部搬完**；
-本仓库（新基座）**本地构建全绿、本地预览可用**；
-**已于 2026-09-26 首次部署到 Cloudflare Pages** → `https://www.cloudwing.top`（见 §4.3）。
+旧站 `endfield-blog` 的**内容已全部迁入**、**五个功能已全部搬完**（阅读层 / 影像查看器 /
+音乐播放器 / 站点目录 / 日历页）；**已于 2026-09-26 首次部署到 Cloudflare Pages**（Git 集成，
+构建由 CF 跑）→ `https://www.cloudwing.top`。
+
+线上**已核对**：`/` 进三维终端、`/blog/` 是博客首页、`/calendar/` 月历（数据完整）、
+`/gallery/` → 301 → `/lab/`、`/blog/` 的样式表 200（详见 §5.1）。
+
+★**接手后先看两件事**★：① §4.3 —— canonical 的 origin 还没在线上生效；
+② §5.2 —— 那份真机目视清单（三维阵列 / 音频 / 详情 / 收藏 / 下载 / 浮层）还没做完。
 
 ## 2. 仓库、分支与远程
 
@@ -180,40 +186,84 @@
 
 ⚠️ 第 9 列的构图与浮层卡片墙的排布需真机目视。
 
-## 4. 未完成
+### 3.7 首次部署（2026-09-26）
 
-1. **功能全部搬完**（旧站 13 条路由对照）：农历日历 → §3.5、网站导航 → §3.6、
-   giscus 评论**已砍掉**（站长定，减负 —— `account.astro` 占位页与它那 173 行 CSS 一并删除，
+推送 → CF Pages 构建 → 上线 `https://www.cloudwing.top`。当天踩到并处理的四件事：
+
+1. **★建项目必须选 Pages，不是 Workers★**。第一版建成了 Worker，构建八步全绿之后挂在最后一步：
+   日志出现 `Executing user deploy command: npx wrangler deploy`，然后
+   `✘ The Cloudflare application detection logic has been run in the root of a workspace…`
+   —— **Pages 构建没有"部署命令"这一步**，有它就说明走错了流程；而 wrangler 在 npm workspace
+   根目录拒绝猜应用。见 DEPLOY-CF.md §1.9。
+2. **★canonical 指向了旧站★**。抓线上页面发现新站的
+   `<link rel="canonical" href="https://cloudwing.top/blog/">` —— 而 apex 上跑的是**旧站**，
+   它的 `/blog/` 是「归档」页。根因是那次构建的 origin 还是 `cloudwing.top`。四处默认值已改成
+   `https://www.cloudwing.top`（§3.4 末），**线上要重新构建才生效**（见 §4.3）。
+3. **域名格局定了**：本站住 `www`，apex 留给旧站，**两个站并存**（一个主机名只能指向一个站）。
+4. **remote 配好了**：`origin` = `github.com/CloudWingX/CloudWing_X`（★**必须私有**★ ——
+   仓库里 132 张游戏截图 + 4 首商业 mp3（约 42MB）+ 21 个商标图标都是构建必需的输入，
+   而文档声明它们"仅站内使用"）；`upstream` = 上游模板且 push 地址被禁。推送用双击
+   `推送代码.cmd`（push 只能由站长在本机做 —— 沙箱没有凭据，GitHub 也不接受匿名推送）。
+
+**当天在线核对的结果见 §5.1**（`/` 进终端、`/blog/`、`/calendar/`、`/gallery/` 301 全过）。
+
+## 4. 还剩什么
+
+1. ~~功能搬迁~~ —— **全部搬完**：农历日历 → §3.5、网站导航 → §3.6；
+   giscus 评论**已砍掉**（站长定，减负：`account.astro` 占位页与它那 173 行 CSS 一并删除，
    旧站的 `/account/` 随之 404）。
-2. ~~两个旧 URL 的处置未定~~ —— **已定**（2026-09-26）：`/gallery/`、`/music/`、`/nav/`
-   三个旧地址一律 **301 到 `/lab/`**（它们现在都是阵列里的列）。`build-redirects.mjs` 里的
-   `PENDING` 清单因此清空。
-3. **已首次部署（2026-09-26）** → `https://www.cloudwing.top`（CF Pages，Git 集成）。
-   完整操作与核对清单见 [DEPLOY-CF.md](DEPLOY-CF.md)。★还剩一步没做★：
-   **CF 环境变量里要设 `BLOG_SITE_ORIGIN=https://www.cloudwing.top` 并重新部署** —— 第一版线上
-   部署的 canonical / og:url 指向了 `https://cloudwing.top`（= **旧站**的地址），等于让新站每页
-   声明"正本是旧站那一页"；四处 origin 默认值已修（见 §3.4 末），但线上要重新构建才生效。
-   ⚠️ **本站住在 `www`、apex 是旧站，两个站并存**（站长定）；并存期间新站文章与旧站的同名文章
-   构成重复内容，彻底解决要等旧站下线或整体 301。
-   ⚠️ 另记一个实测坑：CF Pages 建项目**必须选 Pages 不是 Workers**（Workers 会跑
-   `npx wrangler deploy`，在 npm workspace 根目录报"application detection"失败）——见
-   DEPLOY-CF.md §1.9。
-4. **延后项**：双环标志与开场字形表的重做（站长定"等网页完成后再说"）。
+2. ~~旧地址处置~~ —— **已定**（2026-09-26）：`/gallery/`、`/music/`、`/nav/` 一律
+   **301 到 `/lab/`**；`build-redirects.mjs` 的 `PENDING` 清单已清空。线上实测 `/gallery/`
+   确实 301 到 `/lab/` ✓（§5.1）。
+3. **★canonical 的 origin 还没在线上生效★ —— 当前唯一的技术遗留。**
+   - **格局**：本站住 `www.cloudwing.top`；**apex `cloudwing.top` 上是旧站**（暗色视频背景那版，
+     有自己的 `/blog/`「归档」、`/画廊/`、`/音乐/`、`/导航/`、`/互动/`）—— **两个站并存**（站长定）。
+   - **问题**：第一版线上部署的 `<link rel="canonical">` / `og:url` 指向 `https://cloudwing.top`
+     —— 也就是**旧站**的地址，等于让新站每一页声明"正本是旧站那一页"。
+   - **已做**：四处 origin 默认值改成 `https://www.cloudwing.top`（§3.4 末）。
+   - **要做的**：**推一次代码让 CF 重建**（双击 `推送代码.cmd`）；或者 CF 里设
+     `BLOG_SITE_ORIGIN=https://www.cloudwing.top` 再 Retry deployment
+     —— ★改环境变量本身不会触发构建★。变量在 `Settings → Variables and Secrets`
+     （旧版叫 Environment variables）的 **Production** 栏，Type 选 Text。
+   - **核验**：`curl.exe -s https://www.cloudwing.top/blog/ | findstr canonical`
+     → 期望 `https://www.cloudwing.top/blog/`。
+4. **两站并存的重复内容**（已知，暂不处理）：新站文章是从旧站迁来的，同一篇内容在
+   `cloudwing.top/posts/<slug>/`（旧）与 `www.cloudwing.top/<YYYY>/<MM>/<DD>/<slug>/`（新）
+   都能打开。彻底解决要等站长决定旧站何时下线、或让旧站整体 301 到新站。
+5. **响应头没核**：`_headers` 那三条缓存规则要用本机 `curl.exe -sI` 跑
+   （见 [DEPLOY-CF.md](DEPLOY-CF.md) §4.4）—— 沙箱的抓取工具读不到响应头。
+6. **延后项**：双环标志与开场字形表的重做（站长定"等网页完成后再说"；现在页面已完成）。
 
-## 5. ⚠️ 待真机确认（沙箱里验不了的两处）
+## 5. 验证状态
 
-这两件事**必须有真实浏览器**才能确认，交接时它们的状态是"已实现但未验证"：
+### 5.1 ✅ 已在线核对（2026-09-26，抓 `www.cloudwing.top` 的真实响应）
 
-1. **音频能不能真的响**。沙箱里无头 Chrome 的媒体元素表现不一致：同一页面里内联写一遍同样的
-   Blob 播放流程能播、时钟正常推进，但播放器里的元素始终 `readyState=0`。**无法判定是环境还是代码**。
-   → 真机上打开一首歌的档案详情、点「播放」；不响的话看浮层左下角的状态文案（它现在会显示失败原因）。
-2. **三维阵列 9 列的外观**（5 文章主题 + 2 影像大类 + 音乐 + 网站导航）。页面持续跑 rAF
-   动画，截图会卡死，所以只能目视。★跟这项一起看★：站点目录浮层（`[收藏][浏览站点]` 打开）
-   的卡片墙排布、图标有没有破图、外链是不是新标签打开。
-   ★**先看这一项**★：第 8 列（音乐）加进来后，`LANE_CENTER` 曾被改成 3.5、与实例排布里写死的 2
-   冲突，阵列与抽出的模型错位 1.5 列 —— 已在 §3.1 修掉，但**修完仍需目视确认**：
-   选中的档案卡片要正好落在抽出的模型下方居中；左右切列时整个阵列平移，边缘不应跳。
-   另外确认每列刻度条都是 **8 个**（`#file-ticks`）。
+| 检查 | 结果 |
+| --- | --- |
+| `/` | **三维终端** ✓ —— `<noscript>` 指向 `/blog/`（改过的那处，证明是我们的构建）→ 根路径 **200 rewrite 生效** |
+| `/blog/` | 博客首页 ✓（标题「云翼」、顶栏 7 项含「日历」、45 篇列表、`/lab/` 入口卡片） |
+| `/blog/` 的样式表 | `/_astro/BaseLayout.*.css` **200 且含站点令牌与 MiSans** ✓（不是 404） |
+| `/calendar/` | 月历 ✓（内联数据完整：窗口 2025–2028、2026 春节 2/15–23、调休 11 天、农历标签正确） |
+| `/gallery/` | **301 → `/lab/`** ✓（`/music/` `/nav/` 同机制） |
+| canonical / og:url | ✗ 指向 `https://cloudwing.top`（旧站）—— 见 §4.3 |
+
+### 5.2 ⚠️ 还没核（必须有真实浏览器 / 本机）
+
+以下都是"已实现但未验证"。沙箱里做不到：三维页持续跑 rAF（截图会卡死），且**本会话读不了图片**
+（连用户发的截图也读不了）—— 所以这一类只能真机目视，或者由用户用文字描述现象。
+
+1. **音频能不能真的响**：打开一首歌的档案详情 →「播放」。不响就看浮层左下角的状态文案
+   （它会显示失败原因）。沙箱里无头 Chrome 的媒体元素表现不一致，无法判定是环境还是代码。
+2. **三维阵列 9 列的外观**（5 文章主题 + 2 影像大类 + 音乐 + 网站导航）—— ★**先看这项**★：
+   选中的卡片要正好落在抽出的模型下方**居中**（§3.1 修过 1.5 列错位）；左右切列时整个阵列平移、
+   边缘不跳；每列刻度条都是 **8 个**。顺带看一眼帧率（页面在 `#three-scene` 的 dataset 上暴露 fps）。
+3. **站点目录浮层**（网站导航档案的「浏览站点」）：卡片墙排布、图标不是破图、外链新标签打开、ESC 能关。
+4. **详情面板**：影像 / 音乐 / 网站导航三类都有 `01/02/03` 页签，摘要排版与文章档案一致。
+5. **收藏**：三类都能收藏，且**收藏页里每个只出现一次**（曾按文章 id 存，会重复）。
+6. **三个下载入口**：文章 `EXPORT ↓`（TXT 能打开）、影集 `IMAGES ↓`（ZIP 能解压）、
+   曲目 `AUDIO ↓`（mp3 能下）。
+7. **日历交互**：今天高亮、`‹ ›` 翻月、到数据边界禁用、图例（休/班/节/气/●）对得上。
+8. **响应头**：`curl.exe -sI` 三条（`/`、`/lab/`、`/lab/archives/…`）的 `cache-control`。
 
 ## 6. 构建与验证
 
@@ -226,15 +276,17 @@ npm run preview -- --open   # 预览真实产物 dist/
 
 八步链：`check:imports → check:content → check:features → build:blog → build:lab → build:redirects → search:index → check:site`
 
-**当前验证状态（提交态）**（2026-09-26 深夜，Linux 侧）：`typecheck` 0 报错、`check:features` 通过
-（4 个功能：reader / album-viewer / music-player / site-viewer）、`npm run build` **exit 0**、
-`check:site` 通过、dist 46 页。
+**✅ 2026-09-26 首次线上构建（CF Pages 构建机，Node **24.18.0**）八步全过**：
+`check:imports` 127 条 ✓、`check:content` 26 篇 ✓、`check:features` **4 个功能** ✓、
+Astro **45 页** ✓（含 `/blog/`、`/calendar/`）、`/lab/` 123 个模块（4 个懒加载 chunk：
+reader / player / 两个 viewer）✓、重定向 **18 条** ✓、Pagefind 46 页 ✓、`check:site` ✓。
+→ 这条链在 CF 上**不需要任何额外配置**就能跑通（`wrangler.toml` 的 `pages_build_output_dir = "dist"`）。
 
-**本轮修订（§3.1，已提交）的验证状态**：`tsc --noEmit` **0 报错**、`check:features` / `check:content`
-通过、生成器断言 17 条全过。★**`npm run build` 没跑**★ —— 一轮沙箱侧磁盘被别的会话占满（`/tmp` 里
-`cft` / `rl` / `cwbase` / `serve` 共约 1.6GB，属主是 `nobody`，无 sudo 删不掉、无法 `npm ci`），
-且仓库里的 `node_modules` 是 Windows 装的、不能在 Linux 上用来构建。
-→ **接手后请在 Windows 侧跑一次 `npm run build`（或双击 `打开预览.cmd`）并完成 §5 的目视。**
+**沙箱侧（Linux）能跑什么**：`tsc` / `check:imports` / `check:content` / `check:features` /
+生成器 / 农历逐日对拍 —— 都跑过且全绿。★**`npm run build`（Astro + Vite）在沙箱里跑不了**★：
+沙箱磁盘被别的会话占满（`/tmp` 里 `cft`/`rl`/`cwbase`/`serve` 约 1.6GB，属主 `nobody`、无 sudo
+删不掉），且仓库里的 `node_modules` 是 Windows 装的。→ **构建要么在 Windows、要么交给 CF**
+（现在走的就是 CF；部署形态与坑见 [DEPLOY-CF.md](DEPLOY-CF.md)）。
 
 **模块化纪律**：`src/features/` 下的功能靠"宿主端口 + 门面"接核心，改完必须跑
 `npm run check:features`（它会抓出清单不一致、跨功能穿透、孤儿文件 —— 本轮它真的抓到过一次）。
@@ -256,14 +308,18 @@ npm run preview -- --open   # 预览真实产物 dist/
 
 | 关注点 | 位置 |
 | --- | --- |
-| 三维入口与装配（三套浮层的宿主端口都在这） | `src/main.ts` |
+| 三维入口与装配（**四套浮层**的宿主端口都在这） | `src/main.ts` |
 | 内容 → 三维数据的契约与校验 | `src/blog-adapter.ts`、`src/data.ts` |
 | 列 / 泳道 / 居中（**列数由数据推导，不写死**） | `src/archive-loop.ts`、`src/scene.ts` |
-| 功能模块 | `src/features/{reader,album-viewer,music-player,site-viewer}/` |
-| 内容侧唯一数据源 | `content/{posts,pages}`、`content/lab-collections.json`、`content/gallery.json`、`content/music.json` |
-| 素材 | `apps/blog/public/shots/`（132 图，17MB）、`public/music/`（4 首 + 封面 + LRC，43MB） |
+| 功能模块（4 个） | `src/features/{reader,album-viewer,music-player,site-viewer}/` |
+| 内容侧唯一数据源 | `content/{posts,pages}`、`content/lab-collections.json`、`content/gallery.json`、`content/music.json`、**`content/nav.json`**、**`content/calendar.json`** |
+| 素材 | `apps/blog/public/shots/`（132 图，17MB）、`public/music/`（4 首 + 封面 + LRC，43MB）、**`apps/blog/public/nav/`**（21 图标，108KB，自托管） |
+| 博客两个新页面 | **`apps/blog/src/pages/calendar/index.astro`**、**`apps/blog/src/pages/nav/`**（导航不进页面、进阵列） |
+| 日历的农历换算（自写） | **`apps/blog/src/lib/lunar.ts`** + `lunar-table.json`（年表）；对拍脚本 `verification/diff-lunar.mjs` |
+| 档案下载件的生成 | **`scripts/blog/export-archives.mjs`** → `public/archives/`（不入库，走 prepare-assets 白名单） |
 | 构建与校验脚本 | `scripts/blog/`、`scripts/check-features.mjs` |
 | 旧内容 → 新契约的迁移器 | `scripts/migrate-content.mjs`（可重跑，**逐字节复现**已提交内容） |
+| **部署** | **[DEPLOY-CF.md](DEPLOY-CF.md)**（CF Pages：控制台三项、域名格局、部署后核对清单） |
 
 ## 9. 与上游的关系
 
