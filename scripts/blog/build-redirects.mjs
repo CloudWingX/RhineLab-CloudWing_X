@@ -41,8 +41,11 @@ const SITE_REDIRECTS = [
   // 旧站 /rss.xml /about/ /account/ /blog/ 与本站同路径，无需重定向
 ];
 const PENDING = [
-  ['/gallery/', '画廊（132 张影像）尚未搬迁'],
-  ['/music/', '音乐播放器尚未搬迁'],
+  // 下面两个栏目**已经搬进 `/lab/` 阵列**（影像档案 / 音乐档案），但**旧地址的处置还没定**：
+  // 指到 `/lab/` 还是保持 404，取决于站长的决定。定下来之前不写规则。
+  ['/gallery/', '画廊已搬入 /lab/ 阵列，旧地址待定'],
+  ['/music/', '音乐已搬入 /lab/ 阵列，旧地址待定'],
+  // 下面两个还没搬，等功能落地再启用。
   ['/nav/', '站点导航目录尚未搬迁'],
   ['/calendar/', '农历日历尚未搬迁'],
 ];
@@ -118,7 +121,7 @@ const header = [
   '#',
   `# 规则数：${rules.length}（其中站级 ${SITE_REDIRECTS.length}）`,
   '#',
-  '# 尚未搬迁、暂不重定向的栏目（现在 301 到首页会变成软 404，反而掩盖"还没搬"）：',
+  '# 暂不重定向的栏目（原因见各行；现在一律 301 到首页只会制造软 404，反而掩盖真实状态）：',
   ...PENDING.map(([p, why]) => `#   ${p.padEnd(12)} ${why}`),
   '#',
 ].join('\n');
@@ -145,4 +148,4 @@ console.log(`  来自 legacyUrls：${rules.length - SITE_REDIRECTS.length} 条�
 console.log(`  站级栏目：${SITE_REDIRECTS.length} 条`);
 for (const [from, to] of SITE_REDIRECTS) console.log(`    ${from.padEnd(12)} → ${to}`);
 if (warnings.length) { console.log('  跳过：'); for (const w of warnings) console.log(`    ${w}`); }
-console.log(`  暂不重定向（待功能搬迁）：${PENDING.map(([p]) => p).join(' ')}`);
+console.log(`  暂不重定向：${PENDING.map(([p]) => p).join(' ')}`);

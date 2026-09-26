@@ -11,6 +11,7 @@
 | 文档 | 内容 |
 | --- | --- |
 | [FEATURES.md](FEATURES.md) | 功能模块划分：相对上游新增功能的清单、宿主端口与门面、边界规则、增删一个功能的完整流程 |
+| [HANDOFF.md](HANDOFF.md) | **交接记录**：项目现状、已完成的 14 个提交、未完成项、待真机确认的两处、构建与验证、环境约束、关键文件地图 |
 | [AUTHORING.md](AUTHORING.md) | 写作与内容维护：目录约定、frontmatter 字段、草稿与未来文章、URL 与重定向、三维主题映射、常见问题 |
 | [BUILD.md](BUILD.md) | 构建与发布：环境准备、构建顺序、本地预览、资源白名单、release 打包与激活、回滚、健康检查、排障 |
 | [READER.md](READER.md) | 沉浸式全文阅读：模块职责、页面契约、窗口与布局参数、控件与目录导航、内容白名单与安全、滚动恢复、验证命令 |
@@ -24,6 +25,7 @@
 ## 阅读顺序建议
 
 - **要写文章**：[AUTHORING.md](AUTHORING.md) → [content/README.md](../content/README.md)
+- **刚接手这个项目**：[HANDOFF.md](HANDOFF.md) → [FEATURES.md](FEATURES.md) → [BUILD.md](BUILD.md)
 - **要部署上线**：[BUILD.md](BUILD.md) → [BLOG-MAINTAIN-PERFECT.md](../BLOG-MAINTAIN-PERFECT.md)
 - **要增删功能模块**：[FEATURES.md](FEATURES.md) → [src/features/README.md](../src/features/README.md)
 - **要改阅读层**：[READER.md](READER.md) → `src/features/reader/` 与 `scripts/reading/`
