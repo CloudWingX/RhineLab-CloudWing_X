@@ -10,7 +10,7 @@
 | 构建命令 | `npm run build` |
 | 构建输出目录 | `dist` |
 | 框架预设 | **None / 无** —— 本项目是 npm workspace + 自定义构建链，不要让预设插手 |
-| 环境变量 | ★`BLOG_SITE_ORIGIN` = `https://www.cloudwing.top`★（必设 + 改后要重新部署）；`NODE_VERSION` = `22.23.2`（可选，CF 默认的 24.18.0 也全绿） |
+| 环境变量 | `NODE_VERSION` = `22.23.2`（可选，CF 默认的 24.18.0 也全绿）。★`BLOG_SITE_ORIGIN` **不必设**★ —— 仓库里的默认值就是 `https://www.cloudwing.top`；只有换域名时才需要显式设（改后要重新部署，见 §1.6） |
 | 自定义域名 | `www.cloudwing.top`（见 §1.6） |
 
 等构建跑完（约 3–5 分钟）→ 拿到 `*.pages.dev` 域名 → 接自定义域名 → 按 §4 的清单核对。
@@ -70,13 +70,19 @@ git push -u origin migration/cloudwing    # 这个分支会成为默认分支
 一个主机名只能指向一个站，所以本站用 `www`（站长 2026-09-26 定：两个站并存，不接管 apex）。
 在 CF 控制台：**项目 → Custom domains → 填 `www.cloudwing.top`**。
 
-★**必须在 CF 的环境变量里设 `BLOG_SITE_ORIGIN=https://www.cloudwing.top`**★，改完**重新部署**
-一次才生效。不设的话 canonical / og:url / sitemap / RSS 会指向 `cloudwing.top`，也就是**旧站**——
-2026-09-26 第一版部署实测正是这个毛病：新站的 canonical 写着 `https://cloudwing.top/blog/`，
-而那个地址是**旧站的「归档」页**，内容完全不同。
+★**canonical / og:url / sitemap / RSS 的域名来自仓库里的默认值**（`apps/blog/astro.config.mjs` 等
+四处，都已是 `https://www.cloudwing.top`），所以**不必设环境变量**——直接重新构建就是对的。
+2026-09-26 第一版部署踩过这个坑：那次构建的 origin 还是 `cloudwing.top`，于是新站的 canonical
+写着 `https://cloudwing.top/blog/`，而那个地址是**旧站的「归档」页**，内容完全不同；
+改齐默认值后重新构建**已在线实测生效**（`/blog/` 与文章页的 canonical / og:url / JSON-LD
+都已是 `www` 本站域名）。
 
-⚠️ **并存期间的重复内容**（已知、暂不处理）：新站的文章是从旧站迁来的，同一篇内容在
-`cloudwing.top/posts/<slug>/`（旧）与 `www.cloudwing.top/<YYYY>/<MM>/<DD>/<slug>/`（新）都能打开。
+改用 `BLOG_SITE_ORIGIN` 显式覆盖也仍然有效（例如以后换域名，不想动代码）：值填
+`https://<新域名>`，**改完必须重新部署一次才生效**——★改环境变量本身不会触发构建★（要 Retry
+deployment 或再推一次代码）。
+
+⚠️ **并存期间的重复内容**（已知、暂不处理）：新站的文章是从旧站迁来的，同一篇内容在两边都能打开
+（旧站 `cloudwing.top` 的归档路径 vs 新站 `www.cloudwing.top` 的归档路径）。
 `www` 侧的 `_redirects` 已把**旧路径**映射到新路径（在 www 域内有效），但 apex 上的旧站仍会用自己的
 地址回一份 200。彻底解决要等站长决定旧站何时下线（或让旧站整体 301 到新站）。
 
@@ -113,7 +119,8 @@ Executing user deploy command: npx wrangler deploy
 | `NODE_VERSION` | `22.23.2` | 实测通过的版本（README 写 24.14.0 无实测记录）。
 ★2026-09-26：CF 默认的 Node 24.18.0 也把八步链全绿跑完了★ —— 这个 pin 是为了让构建可复现，不是硬要求 |
 
-★`BLOG_SITE_ORIGIN` 必须设成 `https://www.cloudwing.top`★（默认值已经是它，但线上要显式设 + 重新部署）。
+★`BLOG_SITE_ORIGIN` **不必设**★（仓库默认值已是 `https://www.cloudwing.top`，2026-09-26 已在线实测
+生效）；只有换域名时才用它覆盖，且**必须重新部署**才生效。
 
 **依赖安装是干净的**：全仓库**没有任何 `postinstall` / `prepare`**，所以 CF 的 `npm ci`
 不会跑额外的构建或下载（`playwright` 的包清单里没有安装期脚本 —— 它不再自动下载浏览器，
@@ -143,6 +150,9 @@ npm run preview -- --open
 - [ ] 终端设置弹框底部的 `BLOG HOME` → 能到 `/blog/`
 - [ ] 旧地址 301：`/gallery/`、`/music/`、`/nav/` → `/lab/`；`/posts/<旧 slug>/` → 对应的新文章地址
 - [ ] 未知路径 → **真实 404**（不是回落首页）
+- [ ] ★**canonical 指向本站域名**★：`curl -s https://<域名>/blog/ | grep canonical` → 必须是本站
+      域名（2026-09-26 第一版就踩过：canonical 指向了 apex 上的**旧站** —— 页面看着完全正常，
+      只有抓 `<head>` 才看得出，见 §1.6）
 
 ### 4.2 三维档案（沙箱里验不了的）
 

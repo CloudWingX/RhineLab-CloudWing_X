@@ -11,10 +11,15 @@
 构建由 CF 跑）→ `https://www.cloudwing.top`。
 
 线上**已核对**：`/` 进三维终端、`/blog/` 是博客首页、`/calendar/` 月历（数据完整）、
-`/gallery/` → 301 → `/lab/`、`/blog/` 的样式表 200（详见 §5.1）。
+`/gallery/` → 301 → `/lab/`、`/blog/` 的样式表 200、**canonical / og:url / JSON-LD 都指向本站
+域名**（详见 §5.1）。
 
-★**接手后先看两件事**★：① §4.3 —— canonical 的 origin 还没在线上生效；
-② §5.2 —— 那份真机目视清单（三维阵列 / 音频 / 详情 / 收藏 / 下载 / 浮层）还没做完。
+**技术上没有未完成的遗留项** —— 最后一项 canonical 的 origin 已于 2026-09-26 末在线上核实生效
+（§4.3，那一节留作回归核验用）。
+
+★**接手后先看一件事**★：§5.2 —— 那份真机目视清单（三维阵列 9 列 / 音频 / 详情页签 / 收藏 /
+下载 / 日历交互 / 响应头）还没做完，而且**沙箱里做不了**（三维页持续 rAF、且本会话读不了图片），
+只能真机目视或由站长用文字描述现象。
 
 ## 2. 仓库、分支与远程
 
@@ -142,7 +147,8 @@
 `astro.config.mjs` 的默认是站点 origin —— 导出的 TXT 里"原文链接"因此指向 example.com，已改齐。
   （2026-09-26 末：**本站住在 `www.cloudwing.top`** —— apex `cloudwing.top` 上是**旧站**，
   **两个站并存**、不接管 apex（站长定）。四处 origin 默认值已改成 `https://www.cloudwing.top`。
-  ★第一版线上部署的 canonical 指向了 `cloudwing.top`（= 旧站），已在 §4 记录并修正★。）
+  ★第一版线上部署的 canonical 指向了 `cloudwing.top`（= 旧站），已修正并**在线上核实生效**
+  （§4.3）★。）
 
 ### 3.5 日历页落地（2026-09-26）
 
@@ -198,7 +204,7 @@
 2. **★canonical 指向了旧站★**。抓线上页面发现新站的
    `<link rel="canonical" href="https://cloudwing.top/blog/">` —— 而 apex 上跑的是**旧站**，
    它的 `/blog/` 是「归档」页。根因是那次构建的 origin 还是 `cloudwing.top`。四处默认值已改成
-   `https://www.cloudwing.top`（§3.4 末），**线上要重新构建才生效**（见 §4.3）。
+   `https://www.cloudwing.top`（§3.4 末）；**重新构建后已在线上核实生效**（见 §4.3）。
 3. **域名格局定了**：本站住 `www`，apex 留给旧站，**两个站并存**（一个主机名只能指向一个站）。
 4. **remote 配好了**：`origin` = `github.com/CloudWingX/CloudWing_X`（★**必须私有**★ ——
    仓库里 132 张游戏截图 + 4 首商业 mp3（约 42MB）+ 21 个商标图标都是构建必需的输入，
@@ -215,21 +221,23 @@
 2. ~~旧地址处置~~ —— **已定**（2026-09-26）：`/gallery/`、`/music/`、`/nav/` 一律
    **301 到 `/lab/`**；`build-redirects.mjs` 的 `PENDING` 清单已清空。线上实测 `/gallery/`
    确实 301 到 `/lab/` ✓（§5.1）。
-3. **★canonical 的 origin 还没在线上生效★ —— 当前唯一的技术遗留。**
-   - **格局**：本站住 `www.cloudwing.top`；**apex `cloudwing.top` 上是旧站**（暗色视频背景那版，
-     有自己的 `/blog/`「归档」、`/画廊/`、`/音乐/`、`/导航/`、`/互动/`）—— **两个站并存**（站长定）。
-   - **问题**：第一版线上部署的 `<link rel="canonical">` / `og:url` 指向 `https://cloudwing.top`
+3. ~~canonical 的 origin~~ —— **✅ 已解决**（2026-09-26 末在线上实测核实；这一节留作回归核验用）。
+   - **当时的毛病**：第一版线上部署的 `<link rel="canonical">` / `og:url` 指向 `https://cloudwing.top`
      —— 也就是**旧站**的地址，等于让新站每一页声明"正本是旧站那一页"。
-   - **已做**：四处 origin 默认值改成 `https://www.cloudwing.top`（§3.4 末）。
-   - **要做的**：**推一次代码让 CF 重建**（双击 `推送代码.cmd`）；或者 CF 里设
-     `BLOG_SITE_ORIGIN=https://www.cloudwing.top` 再 Retry deployment
-     —— ★改环境变量本身不会触发构建★。变量在 `Settings → Variables and Secrets`
-     （旧版叫 Environment variables）的 **Production** 栏，Type 选 Text。
-   - **核验**：`curl.exe -s https://www.cloudwing.top/blog/ | findstr canonical`
+   - **怎么解决的**：四处 origin 默认值改成 `https://www.cloudwing.top`（§3.4 末）后**重新构建**。
+     线上实测 `/blog/` 与文章页的 `<link rel="canonical">`、`og:url`、JSON-LD 的
+     `mainEntityOfPage` **都已是 `https://www.cloudwing.top/…`** ✓。
+   - **`BLOG_SITE_ORIGIN` 现在不必设** —— 仓库里的默认值就是 `www`；当时若设过，留着也无害。
+     （真要设：`Settings → Variables and Secrets`，旧版叫 Environment variables，在 **Production**
+     栏、Type 选 Text；★改完必须重新部署才生效，改变量本身不会触发构建★。）
+   - **回归核验**（以后动域名时照这条查）：
+     `curl.exe -s https://www.cloudwing.top/blog/ | findstr canonical`
      → 期望 `https://www.cloudwing.top/blog/`。
-4. **两站并存的重复内容**（已知，暂不处理）：新站文章是从旧站迁来的，同一篇内容在
-   `cloudwing.top/posts/<slug>/`（旧）与 `www.cloudwing.top/<YYYY>/<MM>/<DD>/<slug>/`（新）
-   都能打开。彻底解决要等站长决定旧站何时下线、或让旧站整体 301 到新站。
+   - **格局（仍然有效）**：本站住 `www.cloudwing.top`；**apex `cloudwing.top` 上是旧站**（暗色视频
+     背景那版，有自己的 `/blog/`「归档」、`/画廊/`、`/音乐/`、`/导航/`、`/互动/`）—— **两个站并存**（站长定）。
+4. **两站并存的重复内容**（已知，暂不处理）：新站文章是从旧站迁来的，同一篇内容在两边都能打开
+   （旧站 `cloudwing.top` 的归档路径 vs 新站 `www.cloudwing.top` 的归档路径）。彻底解决要等站长
+   决定旧站何时下线、或让旧站整体 301 到新站。
 5. **响应头没核**：`_headers` 那三条缓存规则要用本机 `curl.exe -sI` 跑
    （见 [DEPLOY-CF.md](DEPLOY-CF.md) §4.4）—— 沙箱的抓取工具读不到响应头。
 6. **延后项**：双环标志与开场字形表的重做（站长定"等网页完成后再说"；现在页面已完成）。
@@ -238,6 +246,8 @@
 
 ### 5.1 ✅ 已在线核对（2026-09-26，抓 `www.cloudwing.top` 的真实响应）
 
+当天两轮：部署完成时一轮（下表前五行），末轮**复测 canonical**（最后两行）。
+
 | 检查 | 结果 |
 | --- | --- |
 | `/` | **三维终端** ✓ —— `<noscript>` 指向 `/blog/`（改过的那处，证明是我们的构建）→ 根路径 **200 rewrite 生效** |
@@ -245,7 +255,8 @@
 | `/blog/` 的样式表 | `/_astro/BaseLayout.*.css` **200 且含站点令牌与 MiSans** ✓（不是 404） |
 | `/calendar/` | 月历 ✓（内联数据完整：窗口 2025–2028、2026 春节 2/15–23、调休 11 天、农历标签正确） |
 | `/gallery/` | **301 → `/lab/`** ✓（`/music/` `/nav/` 同机制） |
-| canonical / og:url | ✗ 指向 `https://cloudwing.top`（旧站）—— 见 §4.3 |
+| 文章页 `/log/2026-09-22/` | 正常渲染 ✓（正文、分类标签、「复制链接」按钮、前后篇 `post-nav`、JSON-LD 齐全） |
+| canonical / `og:url` / JSON-LD | **✅ 都指向 `https://www.cloudwing.top/…`**（`/blog/` 与文章页都抽过）—— 首轮曾指向旧站 `cloudwing.top`，已复测确认修正，见 §4.3 |
 
 ### 5.2 ⚠️ 还没核（必须有真实浏览器 / 本机）
 
